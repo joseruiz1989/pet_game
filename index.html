@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Pet Rescue Saga - Solver & Boosters Edition</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@600;700&display=swap');
+
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background: linear-gradient(180deg, #38bdf8 0%, #6ee7b7 55%, #22c55e 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .game-font {
+      font-family: 'Fredoka One', cursive;
+    }
+
+    /* Estilos 3D de los bloques */
+    .block-base {
+      transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+      box-shadow: inset 0 3px 5px rgba(255, 255, 255, 0.45), inset 0 -3px 5px rgba(0, 0, 0, 0.25), 0 3px 6px rgba(0,0,0,0.18);
+      border-radius: 12px;
+      position: relative;
+    }
+
+    .block-base:active {
+      transform: scale(0.92);
+    }
+
+    /* Colores estilo Pet Rescue */
+    .block-red {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5253 60%, #c0392b 100%);
+      border: 2px solid #ff8787;
+    }
+    .block-blue {
+      background: linear-gradient(135deg, #54a0ff 0%, #2e86de 60%, #1a5276 100%);
+      border: 2px solid #74b9ff;
+    }
+    .block-green {
+      background: linear-gradient(135deg, #1dd1a1 0%, #10ac84 60%, #0e7054 100%);
+      border: 2px solid #55efc4;
+    }
+    .block-yellow {
+      background: linear-gradient(135deg, #feca57 0%, #ff9f43 60%, #e67e22 100%);
+      border: 2px solid #ffeaa7;
+    }
+    .block-purple {
+      background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 60%, #5e2777 100%);
+      border: 2px solid #be2edd;
+    }
+    .block-metal {
+      background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 60%, #34495e 100%);
+      border: 2px solid #bdc3c7;
+    }
+
+    /* Brillo superior en bloques */
+    .block-highlight {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      right: 3px;
+      height: 35%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 100%);
+      border-radius: 8px 8px 12px 12px;
+      pointer-events: none;
+    }
+
+    /* Animación Mascota */
+    .pet-bounce {
+      animation: gentle-bounce 2s infinite ease-in-out;
+    }
+
+    @keyframes gentle-bounce {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-4px) scale(1.05); }
+    }
+
+    /* Pulso para la pista de solución */
+    @keyframes hint-glow {
+      0%, 100% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 2px #fff); }
+      50% { transform: scale(1.08); filter: brightness(1.3) drop-shadow(0 0 10px #facc15); }
+    }
+
+    .hint-highlight {
+      animation: hint-glow 0.8s infinite ease-in-out !important;
+      z-index: 25 !important;
+    }
+
+    /* Animación de destrucción */
+    @keyframes pop-destroy {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3) rotate(8deg); opacity: 0.8; }
+      100% { transform: scale(0); opacity: 0; }
+    }
+
+    .animate-pop {
+      animation: pop-destroy 0.22s ease-out forwards;
+      pointer-events: none;
+    }
+
+    /* Césped de meta inferior */
+    .grass-ground {
+      background: repeating-linear-gradient(
+        -45deg,
+        #22c55e,
+        #22c55e 12px,
+        #16a34a 12px,
+        #16a34a 24px
+      );
+      box-shadow: inset 0 3px 6px rgba(0,0,0,0.25), 0 -3px 8px rgba(0,0,0,0.12);
+    }
+
+    /* Botones de Booster */
+    .booster-btn {
+      transition: all 0.15s ease;
+    }
+    .booster-btn:active {
+      transform: scale(0.92);
+    }
+    .booster-btn.active-booster {
+      outline: 3px solid #f59e0b;
+      box-shadow: 0 0 14px #fbbf24;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-between p-2 sm:p-4 min-h-screen">
+
+  <!-- ENCABEZADO Y CONTROLES SUPERIORES -->
+  <header class="w-full max-w-md mx-auto flex flex-col gap-2">
+    <!-- Fila 1: Logo, Nivel y Botones de Menú -->
+    <div class="flex items-center justify-between bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-lg border-2 border-white">
+      <div class="flex items-center gap-2 cursor-pointer" id="btn-open-levels">
+        <span class="text-3xl">🐾</span>
+        <div>
+          <h1 class="game-font text-lg text-emerald-800 tracking-wide leading-none flex items-center gap-1.5">
+            Pet Rescue <i class="fa-solid fa-chevron-down text-xs text-emerald-600"></i>
+          </h1>
+          <span id="level-indicator" class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Nivel 1</span>
+        </div>
+      </div>
+      
+      <!-- Herramientas superiores -->
+      <div class="flex gap-1.5 items-center">
+        <!-- Botón Pista (Solver) -->
+        <button id="btn-hint" title="Mostrar sugerencia del Solver" class="w-9 h-9 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-700 flex items-center justify-center transition active:scale-95 shadow-sm border border-amber-300">
+          <i class="fa-solid fa-lightbulb text-sm"></i>
+        </button>
+        <!-- Sonido -->
+        <button id="btn-sound" title="Alternar Sonido" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition active:scale-95 shadow-sm border border-slate-300">
+          <i id="sound-icon" class="fa-solid fa-volume-high text-sm"></i>
+        </button>
+        <!-- Reiniciar -->
+        <button id="btn-restart" title="Reiniciar este nivel con la misma configuración" class="w-9 h-9 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 flex items-center justify-center transition active:scale-95 shadow-sm border border-rose-300">
+          <i class="fa-solid fa-rotate-right text-sm"></i>
+        </button>
+        <!-- Avanzar Nivel -->
+        <button id="btn-next-level" title="Avanzar de Nivel" class="w-9 h-9 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-700 flex items-center justify-center transition active:scale-95 shadow-sm border border-emerald-300">
+          <i class="fa-solid fa-forward-step text-sm"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Barra de Generador Procedural Garantizado -->
+    <div class="flex gap-2">
+      <button id="btn-generate-guaranteed" class="flex-1 py-1.5 px-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl shadow-md border border-purple-300/40 text-xs font-bold flex items-center justify-center gap-1.5 active:scale-98 transition">
+        <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+        <span>🎲 Generar Nivel (Con Solución Garantizada)</span>
+      </button>
+    </div>
+
+    <!-- Fila 2: Estadísticas del Juego -->
+    <div class="grid grid-cols-3 gap-2">
+      <!-- Mascotas -->
+      <div class="bg-gradient-to-b from-amber-400 to-amber-500 p-2 rounded-2xl text-center shadow-md border-2 border-amber-200 text-white">
+        <div class="text-[10px] uppercase font-bold tracking-wider opacity-90">Mascotas</div>
+        <div class="game-font text-lg flex items-center justify-center gap-1">
+          <span id="rescued-pets">0</span><span class="text-xs">/</span><span id="target-pets">2</span>
+        </div>
+      </div>
+      <!-- Movimientos -->
+      <div class="bg-gradient-to-b from-indigo-500 to-blue-600 p-2 rounded-2xl text-center shadow-md border-2 border-indigo-200 text-white">
+        <div class="text-[10px] uppercase font-bold tracking-wider opacity-90">Movimientos</div>
+        <div id="moves-left" class="game-font text-2xl leading-none">18</div>
+      </div>
+      <!-- Puntuación -->
+      <div class="bg-gradient-to-b from-emerald-500 to-teal-600 p-2 rounded-2xl text-center shadow-md border-2 border-emerald-200 text-white">
+        <div class="text-[10px] uppercase font-bold tracking-wider opacity-90">Puntos</div>
+        <div id="score" class="game-font text-lg">0</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL: TABLERO DE JUEGO -->
+  <main class="w-full max-w-md mx-auto my-auto flex flex-col items-center justify-center relative px-1">
+    
+    <!-- Banner de booster activo -->
+    <div id="booster-banner" class="hidden w-full bg-amber-400/95 border-2 border-amber-500 text-amber-950 font-bold text-xs py-1 px-3 rounded-xl mb-1 text-center shadow-md flex items-center justify-between animate-pulse">
+      <span id="booster-banner-text">🚀 Modo Cohete: Toca una columna</span>
+      <button id="btn-cancel-booster" class="bg-amber-600 text-white text-[10px] uppercase px-2 py-0.5 rounded-lg">Cancelar</button>
+    </div>
+
+    <!-- Indicador de Solver Pensando -->
+    <div id="solver-badge" class="hidden absolute top-2 right-4 z-40 bg-indigo-900/90 text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-lg border border-indigo-400 flex items-center gap-1.5 backdrop-blur-sm">
+      <i class="fa-solid fa-microchip animate-spin text-amber-400"></i>
+      <span id="solver-badge-text">Verificando solución con IA...</span>
+    </div>
+
+    <div id="board-container" class="relative bg-sky-950/25 p-2 sm:p-3 rounded-3xl backdrop-blur-sm shadow-2xl border-4 border-white/70 w-full overflow-hidden">
+      <!-- Canvas de partículas y efectos -->
+      <canvas id="fx-canvas" class="absolute inset-0 pointer-events-none z-30 w-full h-full"></canvas>
+
+      <!-- Grid de Bloques -->
+      <div id="grid" class="grid gap-1.5 sm:gap-2 relative z-10 mx-auto"></div>
+
+      <!-- Césped de Meta donde se salvan los animales -->
+      <div class="grass-ground h-7 sm:h-8 mt-2 rounded-xl flex items-center justify-center text-white text-[11px] sm:text-xs font-bold tracking-wider shadow-inner">
+        <span>🌱 ZONA DE RESCATE 🌱</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- BARRA DE PODERES / BOOSTERS -->
+  <section class="w-full max-w-md mx-auto flex flex-col gap-1.5 mt-2">
+    <div class="flex items-center justify-around bg-white/90 backdrop-blur-md p-2 rounded-2xl shadow-lg border-2 border-white">
+      
+      <!-- Booster 1: Cohete (Limpia Columna) -->
+      <button id="booster-rocket" class="booster-btn flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-b from-rose-50 to-rose-100 border border-rose-300 text-rose-800 shadow-sm">
+        <span class="text-xl">🚀</span>
+        <div class="text-left">
+          <div class="text-[11px] font-bold uppercase leading-none">Cohete</div>
+          <span class="text-[10px] text-rose-600 font-extrabold" id="count-rocket">x2</span>
+        </div>
+      </button>
+
+      <!-- Booster 2: Bomba (Área 3x3) -->
+      <button id="booster-bomb" class="booster-btn flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-b from-amber-50 to-amber-100 border border-amber-300 text-amber-900 shadow-sm">
+        <span class="text-xl">💣</span>
+        <div class="text-left">
+          <div class="text-[11px] font-bold uppercase leading-none">Bomba</div>
+          <span class="text-[10px] text-amber-700 font-extrabold" id="count-bomb">x2</span>
+        </div>
+      </button>
+
+      <!-- Booster 3: Martillo (Un Bloque) -->
+      <button id="booster-hammer" class="booster-btn flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-b from-sky-50 to-sky-100 border border-sky-300 text-sky-900 shadow-sm">
+        <span class="text-xl">🔨</span>
+        <div class="text-left">
+          <div class="text-[11px] font-bold uppercase leading-none">Martillo</div>
+          <span class="text-[10px] text-sky-700 font-extrabold" id="count-hammer">x3</span>
+        </div>
+      </button>
+
+    </div>
+  </section>
+
+  <!-- MODAL SELECTOR DE NIVELES PREDEFINIDOS -->
+  <div id="levels-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl p-5 max-w-xs w-full text-center shadow-2xl border-4 border-emerald-400">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="game-font text-xl text-emerald-800">Seleccionar Nivel</h3>
+        <button id="btn-close-levels" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200">✕</button>
+      </div>
+      <p class="text-xs text-slate-500 font-semibold mb-4">Niveles con distribución fija para practicar estrategias:</p>
+      <div class="grid grid-cols-5 gap-2 mb-4" id="levels-grid-buttons">
+        <!-- Generados por script -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE MENSAJES (VICTORIA / GAME OVER) -->
+  <div id="modal-overlay" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div id="modal-box" class="bg-white rounded-3xl p-6 max-w-xs sm:max-w-sm w-full text-center shadow-2xl transform scale-90 transition-transform duration-300 border-4">
+      <div id="modal-icon" class="text-6xl mb-2 animate-bounce">🏆</div>
+      <h2 id="modal-title" class="game-font text-2xl sm:text-3xl mb-1 text-slate-800">¡Nivel Superado!</h2>
+      <p id="modal-desc" class="text-xs font-semibold text-slate-600 mb-4">Salvaste a todos los animalitos con éxito.</p>
+      
+      <div class="bg-slate-100 rounded-2xl p-3 mb-4 border border-slate-200">
+        <div class="text-[10px] uppercase font-bold text-slate-400">Puntaje Final</div>
+        <div id="modal-score" class="game-font text-2xl text-emerald-600">1,450</div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <button id="modal-btn-primary" class="w-full py-3 rounded-2xl game-font text-base text-white shadow-lg active:scale-95 transition bg-emerald-500 hover:bg-emerald-600">
+          Siguiente Nivel
+        </button>
+        <button id="modal-btn-secondary" class="w-full py-2 rounded-2xl font-bold text-xs text-slate-600 hover:bg-slate-100 transition">
+          Reintentar Nivel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* =====================================================================
+       DATOS DE NIVELES FIJOS PREDEFINIDOS (Garantizan solución 100%)
+       Nombres de tipos: 'R'=red, 'B'=blue, 'G'=green, 'Y'=yellow, 'P'=purple, 'M'=metal, 'D'=dog, 'C'=cat
+       ===================================================================== */
+    const COLS = 6;
+    const ROWS = 8;
+
+    const PRESET_LEVELS = [
+      // Nivel 1: Introductorio (Fácil rescate de 2 mascotas)
+      {
+        id: 1,
+        moves: 18,
+        targetPets: 2,
+        layout: [
+          ['.', 'D', '.', '.', 'C', '.'],
+          ['R', 'R', 'B', 'B', 'G', 'G'],
+          ['R', 'B', 'B', 'Y', 'G', 'Y'],
+          ['Y', 'Y', 'R', 'R', 'Y', 'Y'],
+          ['B', 'B', 'G', 'G', 'B', 'B'],
+          ['R', 'R', 'R', 'Y', 'Y', 'G'],
+          ['G', 'G', 'B', 'B', 'R', 'R'],
+          ['Y', 'Y', 'Y', 'G', 'G', 'G']
+        ]
+      },
+      // Nivel 2: Desafío de columnas y compactación lateral
+      {
+        id: 2,
+        moves: 17,
+        targetPets: 2,
+        layout: [
+          ['D', '.', '.', '.', '.', 'D'],
+          ['B', 'B', 'R', 'R', 'G', 'G'],
+          ['Y', 'B', 'B', 'Y', 'G', 'Y'],
+          ['Y', 'Y', 'P', 'P', 'R', 'R'],
+          ['P', 'P', 'P', 'B', 'B', 'B'],
+          ['R', 'R', 'Y', 'Y', 'G', 'G'],
+          ['B', 'B', 'R', 'R', 'P', 'P'],
+          ['G', 'G', 'G', 'Y', 'Y', 'Y']
+        ]
+      },
+      // Nivel 3: 3 Mascotas con distribución vertical
+      {
+        id: 3,
+        moves: 20,
+        targetPets: 3,
+        layout: [
+          ['.', 'D', '.', 'C', '.', 'D'],
+          ['R', 'R', 'G', 'G', 'B', 'B'],
+          ['P', 'R', 'G', 'Y', 'B', 'P'],
+          ['P', 'P', 'Y', 'Y', 'R', 'R'],
+          ['G', 'G', 'B', 'B', 'R', 'Y'],
+          ['Y', 'Y', 'P', 'P', 'G', 'G'],
+          ['B', 'B', 'B', 'R', 'R', 'R'],
+          ['P', 'P', 'Y', 'Y', 'B', 'B']
+        ]
+      },
+      // Nivel 4: Introducción de obstáculo metálico (se sortea con columnas o boosters)
+      {
+        id: 4,
+        moves: 19,
+        targetPets: 2,
+        layout: [
+          ['D', '.', '.', '.', '.', 'C'],
+          ['R', 'R', 'B', 'B', 'Y', 'Y'],
+          ['G', 'R', 'M', 'M', 'Y', 'G'],
+          ['G', 'G', 'B', 'B', 'P', 'P'],
+          ['P', 'P', 'R', 'R', 'P', 'B'],
+          ['Y', 'Y', 'Y', 'G', 'G', 'B'],
+          ['R', 'R', 'B', 'B', 'Y', 'Y'],
+          ['G', 'G', 'G', 'P', 'P', 'P']
+        ]
+      },
+      // Nivel 5: Rompecabezas avanzado
+      {
+        id: 5,
+        moves: 22,
+        targetPets: 3,
+        layout: [
+          ['D', '.', 'C', '.', 'D', '.'],
+          ['Y', 'Y', 'R', 'R', 'B', 'B'],
+          ['P', 'Y', 'R', 'G', 'B', 'G'],
+          ['P', 'P', 'G', 'G', 'R', 'R'],
+          ['M', 'B', 'B', 'Y', 'Y', 'M'],
+          ['B', 'B', 'P', 'P', 'Y', 'Y'],
+          ['R', 'R', 'G', 'G', 'P', 'P'],
+          ['G', 'G', 'B', 'B', 'R', 'R']
+        ]
+      }
+    ];
+
+    /* =====================================================================
+       VARIABLES DE ESTADO Y BOOSTERS
+       ===================================================================== */
+    let currentLevelNumber = 1;
+    let isProceduralLevel = false;
+    let gridState = []; // Matriz de objetos actuales
+    let savedInitialState = null; // Copia para reiniciar el nivel con el mismo layout
+    let movesLeft = 0;
+    let score = 0;
+    let targetPetsCount = 0;
+    let rescuedCount = 0;
+    let isProcessing = false;
+    let soundEnabled = true;
+    let blockUniqueId = 0;
+
+    // Inventario de Boosters
+    const boosters = {
+      rocket: 2,
+      bomb: 2,
+      hammer: 3
+    };
+    let activeBooster = null; // 'rocket' | 'bomb' | 'hammer' | null
+
+    // Pista del solver
+    let cachedSolution = null;
+
+    // Elementos DOM
+    const gridEl = document.getElementById('grid');
+    const movesEl = document.getElementById('moves-left');
+    const scoreEl = document.getElementById('score');
+    const rescuedEl = document.getElementById('rescued-pets');
+    const targetEl = document.getElementById('target-pets');
+    const levelIndEl = document.getElementById('level-indicator');
+    const solverBadge = document.getElementById('solver-badge');
+    const solverBadgeText = document.getElementById('solver-badge-text');
+
+    const btnRestart = document.getElementById('btn-restart');
+    const btnSound = document.getElementById('btn-sound');
+    const soundIcon = document.getElementById('sound-icon');
+    const btnNextLevel = document.getElementById('btn-next-level');
+    const btnHint = document.getElementById('btn-hint');
+    const btnGenerateGuaranteed = document.getElementById('btn-generate-guaranteed');
+    const btnOpenLevels = document.getElementById('btn-open-levels');
+    const levelsModal = document.getElementById('levels-modal');
+    const btnCloseLevels = document.getElementById('btn-close-levels');
+    const levelsGridButtons = document.getElementById('levels-grid-buttons');
+
+    const boosterRocketBtn = document.getElementById('booster-rocket');
+    const boosterBombBtn = document.getElementById('booster-bomb');
+    const boosterHammerBtn = document.getElementById('booster-hammer');
+    const countRocketEl = document.getElementById('count-rocket');
+    const countBombEl = document.getElementById('count-bomb');
+    const countHammerEl = document.getElementById('count-hammer');
+    const boosterBanner = document.getElementById('booster-banner');
+    const boosterBannerText = document.getElementById('booster-banner-text');
+    const btnCancelBooster = document.getElementById('btn-cancel-booster');
+
+    const fxCanvas = document.getElementById('fx-canvas');
+    const fxCtx = fxCanvas.getContext('2d');
+
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalBox = document.getElementById('modal-box');
+    const modalIcon = document.getElementById('modal-icon');
+    const modalTitle = document.getElementById('modal-title');
+    const modalDesc = document.getElementById('modal-desc');
+    const modalScore = document.getElementById('modal-score');
+    const modalBtnPrimary = document.getElementById('modal-btn-primary');
+    const modalBtnSecondary = document.getElementById('modal-btn-secondary');
+
+    /* =====================================================================
+       WEB AUDIO API: SINTETIZADOR DE EFECTOS
+       ===================================================================== */
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'pop') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(400, now);
+          osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } else if (type === 'rescue') {
+          // Campana de rescate de animalito
+          [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.connect(g);
+            g.connect(ctx.destination);
+            o.type = 'triangle';
+            o.frequency.value = freq;
+            g.gain.setValueAtTime(0.3, now + i * 0.08);
+            g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.3);
+            o.start(now + i * 0.08);
+            o.stop(now + i * 0.08 + 0.3);
+          });
+        } else if (type === 'rocket') {
+          // Silbido ascendente
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.exponentialRampToValueAtTime(1200, now + 0.35);
+          gain.gain.setValueAtTime(0.35, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        } else if (type === 'bomb') {
+          // Explosión grave
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(160, now);
+          osc.frequency.exponentialRampToValueAtTime(35, now + 0.35);
+          gain.gain.setValueAtTime(0.5, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        } else if (type === 'hammer') {
+          // Golpe metálico seco
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(800, now);
+          osc.frequency.exponentialRampToValueAtTime(120, now + 0.15);
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else if (type === 'win') {
+          [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((freq, idx) => {
+            const no = ctx.createOscillator();
+            const ng = ctx.createGain();
+            no.connect(ng);
+            ng.connect(ctx.destination);
+            no.type = 'sine';
+            no.frequency.value = freq;
+            ng.gain.setValueAtTime(0.25, now + idx * 0.1);
+            ng.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.1 + 0.3);
+            no.start(now + idx * 0.1);
+            no.stop(now + idx * 0.1 + 0.3);
+          });
+        } else if (type === 'lose') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(110, now + 0.4);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        }
+      } catch (e) {}
+    }
+
+    /* =====================================================================
+       MOTOR DE PARTÍCULAS
+       ===================================================================== */
+    let particles = [];
+    function resizeCanvas() {
+      const rect = fxCanvas.getBoundingClientRect();
+      fxCanvas.width = rect.width;
+      fxCanvas.height = rect.height;
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function spawnParticles(x, y, color, count = 10, isHeart = false) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const spd = Math.random() * 4 + 2;
+        particles.push({
+          x, y,
+          vx: Math.cos(angle) * spd,
+          vy: Math.sin(angle) * spd - 1.2,
+          size: Math.random() * 6 + 4,
+          color,
+          alpha: 1,
+          decay: Math.random() * 0.03 + 0.02,
+          isHeart
+        });
+      }
+    }
+
+    function updateParticles() {
+      fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.16;
+        p.alpha -= p.decay;
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+        fxCtx.save();
+        fxCtx.globalAlpha = p.alpha;
+        if (p.isHeart) {
+          fxCtx.font = `${p.size * 2}px sans-serif`;
+          fxCtx.fillText('❤️', p.x, p.y);
+        } else {
+          fxCtx.fillStyle = p.color;
+          fxCtx.beginPath();
+          fxCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          fxCtx.fill();
+        }
+        fxCtx.restore();
+      }
+      requestAnimationFrame(updateParticles);
+    }
+
+    /* =====================================================================
+       SIMULADOR FÍSICO PURO (PARA EL JUEGO Y PARA EL SOLVER)
+       Trabaja sobre matrices simples de caracteres:
+       '.' = vacío, 'R','B','G','Y','P' = bloques, 'M' = metal, 'D','C' = mascotas
+       ===================================================================== */
+    const isBlock = (c) => ['R', 'B', 'G', 'Y', 'P'].includes(c);
+    const isPet = (c) => ['D', 'C'].includes(c);
+
+    function simulatePhysics(board) {
+      const rows = board.length;
+      const cols = board[0].length;
+      let changed = false;
+
+      // 1. Gravedad vertical
+      for (let c = 0; c < cols; c++) {
+        let emptyR = rows - 1;
+        for (let r = rows - 1; r >= 0; r--) {
+          if (board[r][c] !== '.') {
+            if (emptyR !== r) {
+              board[emptyR][c] = board[r][c];
+              board[r][c] = '.';
+              changed = true;
+            }
+            emptyR--;
+          }
+        }
+      }
+
+      // 2. Colapso de columnas vacías hacia la izquierda
+      for (let c = 0; c < cols - 1; c++) {
+        let isColEmpty = true;
+        for (let r = 0; r < rows; r++) {
+          if (board[r][c] !== '.') {
+            isColEmpty = false;
+            break;
+          }
+        }
+
+        if (isColEmpty) {
+          let foundContentOnRight = false;
+          for (let nc = c + 1; nc < cols; nc++) {
+            for (let r = 0; r < rows; r++) {
+              if (board[r][nc] !== '.') {
+                foundContentOnRight = true;
+                break;
+              }
+            }
+            if (foundContentOnRight) {
+              for (let r = 0; r < rows; r++) {
+                board[r][c] = board[r][nc];
+                board[r][nc] = '.';
+              }
+              changed = true;
+              c--;
+              break;
+            }
+          }
+        }
+      }
+      return changed;
+    }
+
+    function checkRescuesOnMatrix(board) {
+      const rows = board.length;
+      const cols = board[0].length;
+      let rescued = 0;
+
+      for (let c = 0; c < cols; c++) {
+        const bottom = board[rows - 1][c];
+        if (isPet(bottom)) {
+          board[rows - 1][c] = '.';
+          rescued++;
+        }
+      }
+      if (rescued > 0) {
+        simulatePhysics(board);
+        // Cascada recursiva por si cae otra mascota inmediatamente
+        rescued += checkRescuesOnMatrix(board);
+      }
+      return rescued;
+    }
+
+    function getConnectedGroupOnMatrix(board, startR, startC) {
+      const targetColor = board[startR][startC];
+      if (!isBlock(targetColor)) return [];
+
+      const rows = board.length;
+      const cols = board[0].length;
+      const queue = [[startR, startC]];
+      const visited = new Set([`${startR},${startC}`]);
+      const group = [];
+
+      while (queue.length > 0) {
+        const [r, c] = queue.shift();
+        group.push([r, c]);
+
+        const dirs = [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]];
+        for (const [nr, nc] of dirs) {
+          if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+            const k = `${nr},${nc}`;
+            if (!visited.has(k) && board[nr][nc] === targetColor) {
+              visited.add(k);
+              queue.push([nr, nc]);
+            }
+          }
+        }
+      }
+      return group;
+    }
+
+    // Convierte el tablero en una cadena única para poda en el solver
+    function boardToHash(board) {
+      return board.map(row => row.join('')).join('|');
+    }
+
+    /* =====================================================================
+       SOLVER AUTOMÁTICO (BFS con poda para garantizar solución sin boosters)
+       ===================================================================== */
+    function solveBoard(initialBoard, maxMoves, requiredPets) {
+      // Estado: { board, movesMade, rescuedCount, path: [[r, c], ...] }
+      const cloneBoard = (b) => b.map(row => [...row]);
+      
+      const startBoard = cloneBoard(initialBoard);
+      const initialRescued = checkRescuesOnMatrix(startBoard);
+      
+      if (initialRescued >= requiredPets) {
+        return { solvable: true, path: [] };
+      }
+
+      const queue = [{
+        board: startBoard,
+        movesMade: 0,
+        rescuedCount: initialRescued,
+        path: []
+      }];
+
+      const visited = new Set();
+      visited.add(boardToHash(startBoard));
+
+      let iterations = 0;
+      const MAX_ITERATIONS = 4000; // Límite de exploración rápida (10-40 ms)
+
+      while (queue.length > 0 && iterations < MAX_ITERATIONS) {
+        iterations++;
+        const current = queue.shift();
+
+        if (current.rescuedCount >= requiredPets) {
+          return { solvable: true, path: current.path };
+        }
+
+        if (current.movesMade >= maxMoves) continue;
+
+        // Encontrar todos los grupos válidos (>= 2 bloques del mismo color)
+        const rows = current.board.length;
+        const cols = current.board[0].length;
+        const processedCells = new Set();
+        const availableMoves = [];
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const cellKey = `${r},${c}`;
+            if (!processedCells.has(cellKey) && isBlock(current.board[r][c])) {
+              const group = getConnectedGroupOnMatrix(current.board, r, c);
+              group.forEach(([gr, gc]) => processedCells.add(`${gr},${gc}`));
+              if (group.length >= 2) {
+                availableMoves.push({ r, c, group });
+              }
+            }
+          }
+        }
+
+        // Heurística: dar prioridad a grupos que estén debajo de mascotas o grupos más grandes
+        availableMoves.sort((a, b) => b.group.length - a.group.length);
+
+        for (const move of availableMoves) {
+          const nextBoard = cloneBoard(current.board);
+          // Destruir grupo
+          for (const [gr, gc] of move.group) {
+            nextBoard[gr][gc] = '.';
+          }
+          // Aplicar gravedad y chequear rescates
+          simulatePhysics(nextBoard);
+          const newlyRescued = checkRescuesOnMatrix(nextBoard);
+
+          const totalRescued = current.rescuedCount + newlyRescued;
+          const nextHash = boardToHash(nextBoard);
+
+          if (!visited.has(nextHash)) {
+            visited.add(nextHash);
+            const nextPath = [...current.path, [move.r, move.c]];
+            
+            // Si este movimiento ya rescata todo, retornar solución de inmediato
+            if (totalRescued >= requiredPets) {
+              return { solvable: true, path: nextPath };
+            }
+
+            queue.push({
+              board: nextBoard,
+              movesMade: current.movesMade + 1,
+              rescuedCount: totalRescued,
+              path: nextPath
+            });
+          }
+        }
+      }
+
+      return { solvable: false, path: null };
+    }
+
+    /* =====================================================================
+       GENERADOR PROCEDURAL GARANTIZADO
+       ===================================================================== */
+    async function generateGuaranteedLevel() {
+      solverBadge.classList.remove('hidden');
+      solverBadgeText.textContent = 'Generando nivel con solución garantizada...';
+
+      // Permitir que el DOM renderice el badge antes del cálculo
+      await new Promise(res => setTimeout(res, 50));
+
+      const colors = ['R', 'B', 'G', 'Y', 'P'];
+      const targetPets = 2;
+      const maxMoves = 15;
+      let attempts = 0;
+      let foundLevel = null;
+      let solutionPath = null;
+
+      while (attempts < 60) {
+        attempts++;
+        const candidateLayout = Array.from({ length: ROWS }, () => Array(COLS).fill('.'));
+
+        // Llenar bloques con preferencia a crear grupos para que el puzzle sea coherente
+        for (let r = 1; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            // 55% de probabilidad de heredar color de vecino (crea sinergia)
+            const neighborColor = (c > 0 && Math.random() < 0.55) ? candidateLayout[r][c - 1] :
+                                  (r > 1 && Math.random() < 0.55) ? candidateLayout[r - 1][c] : null;
+
+            candidateLayout[r][c] = (neighborColor && neighborColor !== '.') ? neighborColor : colors[Math.floor(Math.random() * colors.length)];
+          }
+        }
+
+        // Colocar 2 mascotas arriba en columnas distintas
+        const petCols = [Math.floor(Math.random() * 3), 3 + Math.floor(Math.random() * 3)];
+        candidateLayout[0][petCols[0]] = 'D';
+        candidateLayout[0][petCols[1]] = 'C';
+
+        // Evaluar con el solver algorítmico
+        const result = solveBoard(candidateLayout, maxMoves, targetPets);
+
+        if (result.solvable) {
+          foundLevel = candidateLayout;
+          solutionPath = result.path;
+          break;
+        }
+      }
+
+      solverBadge.classList.add('hidden');
+
+      if (foundLevel) {
+        isProceduralLevel = true;
+        cachedSolution = solutionPath;
+        loadLevelFromMatrix({
+          id: 'Aleatorio ★',
+          moves: maxMoves,
+          targetPets: targetPets,
+          layout: foundLevel
+        });
+      } else {
+        // En el caso improbable de no converger en 60 intentos, cargar Nivel 1 predefinido
+        loadPresetLevel(1);
+      }
+    }
+
+    /* =====================================================================
+       CARGA Y RENDERIZADO DE NIVELES
+       ===================================================================== */
+    function loadPresetLevel(levelId) {
+      isProceduralLevel = false;
+      cachedSolution = null;
+      currentLevelNumber = levelId;
+      const levelData = PRESET_LEVELS.find(l => l.id === levelId) || PRESET_LEVELS[0];
+      loadLevelFromMatrix(levelData);
+    }
+
+    function loadLevelFromMatrix(levelData) {
+      cancelActiveBooster();
+      levelIndEl.textContent = typeof levelData.id === 'number' ? `Nivel ${levelData.id}` : levelData.id;
+      movesLeft = levelData.moves;
+      targetPetsCount = levelData.targetPets;
+      rescuedCount = 0;
+      score = 0;
+      isProcessing = false;
+
+      // Guardar layout para reiniciar exactamente el mismo tablero
+      savedInitialState = JSON.parse(JSON.stringify(levelData));
+
+      // Construir gridState a partir del layout
+      gridState = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const char = levelData.layout[r][c];
+          if (char === '.') continue;
+
+          let type = 'block';
+          let color = null;
+          let emoji = null;
+
+          if (char === 'R') color = 'red';
+          else if (char === 'B') color = 'blue';
+          else if (char === 'G') color = 'green';
+          else if (char === 'Y') color = 'yellow';
+          else if (char === 'P') color = 'purple';
+          else if (char === 'M') { type = 'block'; color = 'metal'; }
+          else if (char === 'D') { type = 'pet'; emoji = '🐶'; }
+          else if (char === 'C') { type = 'pet'; emoji = '🐱'; }
+
+          gridState[r][c] = {
+            id: ++blockUniqueId,
+            type,
+            color,
+            emoji
+          };
+        }
+      }
+
+      updateStatsUI();
+      renderBoard();
+      resizeCanvas();
+
+      // Si no tenemos solución precargada, resolver en segundo plano para habilitar el botón de pista
+      if (!cachedSolution) {
+        setTimeout(computeHintInBackground, 100);
+      }
+    }
+
+    function computeHintInBackground() {
+      // Convertir gridState actual a matriz de caracteres
+      const charBoard = gridStateToCharMatrix(gridState);
+      const res = solveBoard(charBoard, movesLeft, targetPetsCount - rescuedCount);
+      if (res.solvable) {
+        cachedSolution = res.path;
+      } else {
+        cachedSolution = null;
+      }
+    }
+
+    function gridStateToCharMatrix(state) {
+      const charBoard = Array.from({ length: ROWS }, () => Array(COLS).fill('.'));
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const item = state[r][c];
+          if (!item) continue;
+          if (item.type === 'pet') charBoard[r][c] = item.emoji === '🐱' ? 'C' : 'D';
+          else if (item.color === 'red') charBoard[r][c] = 'R';
+          else if (item.color === 'blue') charBoard[r][c] = 'B';
+          else if (item.color === 'green') charBoard[r][c] = 'G';
+          else if (item.color === 'yellow') charBoard[r][c] = 'Y';
+          else if (item.color === 'purple') charBoard[r][c] = 'P';
+          else if (item.color === 'metal') charBoard[r][c] = 'M';
+        }
+      }
+      return charBoard;
+    }
+
+    function updateStatsUI() {
+      movesEl.textContent = movesLeft;
+      scoreEl.textContent = score.toLocaleString();
+      rescuedEl.textContent = rescuedCount;
+      targetEl.textContent = targetPetsCount;
+
+      countRocketEl.textContent = `x${boosters.rocket}`;
+      countBombEl.textContent = `x${boosters.bomb}`;
+      countHammerEl.textContent = `x${boosters.hammer}`;
+
+      boosterRocketBtn.classList.toggle('opacity-50', boosters.rocket <= 0);
+      boosterBombBtn.classList.toggle('opacity-50', boosters.bomb <= 0);
+      boosterHammerBtn.classList.toggle('opacity-50', boosters.hammer <= 0);
+    }
+
+    function renderBoard() {
+      gridEl.style.gridTemplateColumns = `repeat(${COLS}, minmax(0, 1fr))`;
+      gridEl.innerHTML = '';
+
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const item = gridState[r][c];
+          const cell = document.createElement('div');
+          cell.dataset.r = r;
+          cell.dataset.c = c;
+          cell.className = 'aspect-square flex items-center justify-center relative cursor-pointer select-none';
+
+          if (item) {
+            cell.id = `cell-${item.id}`;
+            if (item.type === 'block') {
+              cell.classList.add('block-base', `block-${item.color}`);
+              if (item.color === 'metal') {
+                const lockIcon = document.createElement('i');
+                lockIcon.className = 'fa-solid fa-cube text-slate-300 text-sm opacity-70';
+                cell.appendChild(lockIcon);
+              } else {
+                const hl = document.createElement('div');
+                hl.className = 'block-highlight';
+                cell.appendChild(hl);
+              }
+            } else if (item.type === 'pet') {
+              cell.classList.add('pet-bounce', 'bg-white/45', 'backdrop-blur-sm', 'rounded-2xl', 'shadow-md', 'border-2', 'border-amber-300');
+              const span = document.createElement('span');
+              span.className = 'text-2xl sm:text-3xl filter drop-shadow';
+              span.textContent = item.emoji;
+              cell.appendChild(span);
+            }
+          } else {
+            cell.classList.add('opacity-0', 'pointer-events-none');
+          }
+
+          cell.addEventListener('pointerdown', (e) => onCellClick(r, c, e));
+          gridEl.appendChild(cell);
+        }
+      }
+    }
+
+    /* =====================================================================
+       INTERACCIÓN: CLICS NORMALES Y ACTIVACIÓN DE BOOSTERS
+       ===================================================================== */
+    async function onCellClick(r, c, event) {
+      if (isProcessing) return;
+      clearHints();
+
+      // Si hay un booster activo, ejecutar la acción del booster
+      if (activeBooster) {
+        await executeBoosterAction(r, c);
+        return;
+      }
+
+      const item = gridState[r][c];
+      if (!item || item.type !== 'block' || item.color === 'metal') return;
+
+      const group = findConnectedGroup(r, c, item.color);
+      if (group.length < 2) {
+        const el = document.getElementById(`cell-${item.id}`);
+        if (el) {
+          el.classList.add('scale-90');
+          setTimeout(() => el.classList.remove('scale-90'), 140);
+        }
+        return;
+      }
+
+      isProcessing = true;
+      movesLeft--;
+      score += group.length * 15 * (group.length > 4 ? 2 : 1);
+      updateStatsUI();
+      playSound('pop');
+
+      // Partículas y animación
+      const colorMap = {
+        red: '#ff6b6b', blue: '#54a0ff', green: '#1dd1a1',
+        yellow: '#feca57', purple: '#9b59b6', metal: '#95a5a6'
+      };
+
+      const rectCanvas = fxCanvas.getBoundingClientRect();
+      for (const b of group) {
+        const blk = gridState[b.r][b.c];
+        const el = document.getElementById(`cell-${blk.id}`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          spawnParticles(rect.left - rectCanvas.left + rect.width / 2, rect.top - rectCanvas.top + rect.height / 2, colorMap[blk.color] || '#fff', 8);
+          el.classList.add('animate-pop');
+        }
+        gridState[b.r][b.c] = null;
+      }
+
+      await new Promise(res => setTimeout(res, 180));
+      await applyBoardPhysics();
+      await checkPetRescues();
+
+      // Actualizar solución para la siguiente pista
+      setTimeout(computeHintInBackground, 50);
+
+      checkEndGameConditions();
+      isProcessing = false;
+    }
+
+    function findConnectedGroup(startR, startC, targetColor) {
+      const queue = [[startR, startC]];
+      const visited = new Set([`${startR},${startC}`]);
+      const connected = [];
+
+      while (queue.length > 0) {
+        const [r, c] = queue.shift();
+        connected.push({ r, c });
+
+        const dirs = [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]];
+        for (const [nr, nc] of dirs) {
+          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+            const k = `${nr},${nc}`;
+            if (!visited.has(k)) {
+              const blk = gridState[nr][nc];
+              if (blk && blk.type === 'block' && blk.color === targetColor) {
+                visited.add(k);
+                queue.push([nr, nc]);
+              }
+            }
+          }
+        }
+      }
+      return connected;
+    }
+
+    /* =====================================================================
+       LÓGICA DE PODERES / BOOSTERS
+       ===================================================================== */
+    function setBooster(type) {
+      if (boosters[type] <= 0) return;
+
+      if (activeBooster === type) {
+        cancelActiveBooster();
+        return;
+      }
+
+      activeBooster = type;
+      boosterRocketBtn.classList.toggle('active-booster', type === 'rocket');
+      boosterBombBtn.classList.toggle('active-booster', type === 'bomb');
+      boosterHammerBtn.classList.toggle('active-booster', type === 'hammer');
+
+      boosterBanner.classList.remove('hidden');
+      if (type === 'rocket') boosterBannerText.textContent = '🚀 Cohete Activo: Toca una columna para arrasarla';
+      else if (type === 'bomb') boosterBannerText.textContent = '💣 Bomba Activa: Toca una zona para estallar 3x3';
+      else if (type === 'hammer') boosterBannerText.textContent = '🔨 Martillo Activo: Toca un bloque para destruirlo';
+    }
+
+    function cancelActiveBooster() {
+      activeBooster = null;
+      boosterRocketBtn.classList.remove('active-booster');
+      boosterBombBtn.classList.remove('active-booster');
+      boosterHammerBtn.classList.remove('active-booster');
+      boosterBanner.classList.add('hidden');
+    }
+
+    async function executeBoosterAction(targetR, targetC) {
+      isProcessing = true;
+      const bType = activeBooster;
+      boosters[bType]--;
+      cancelActiveBooster();
+      updateStatsUI();
+
+      const rectCanvas = fxCanvas.getBoundingClientRect();
+
+      if (bType === 'rocket') {
+        playSound('rocket');
+        // Elimina toda la columna targetC (excepto mascotas, que caen)
+        for (let r = 0; r < ROWS; r++) {
+          const item = gridState[r][targetC];
+          if (item && item.type === 'block') {
+            const el = document.getElementById(`cell-${item.id}`);
+            if (el) {
+              const rect = el.getBoundingClientRect();
+              spawnParticles(rect.left - rectCanvas.left + rect.width / 2, rect.top - rectCanvas.top + rect.height / 2, '#ff4757', 12);
+              el.classList.add('animate-pop');
+            }
+            gridState[r][targetC] = null;
+          }
+        }
+      } else if (bType === 'bomb') {
+        playSound('bomb');
+        // Explota radio 3x3 centrado en targetR, targetC
+        for (let r = Math.max(0, targetR - 1); r <= Math.min(ROWS - 1, targetR + 1); r++) {
+          for (let c = Math.max(0, targetC - 1); c <= Math.min(COLS - 1, targetC + 1); c++) {
+            const item = gridState[r][c];
+            if (item && item.type === 'block') {
+              const el = document.getElementById(`cell-${item.id}`);
+              if (el) {
+                const rect = el.getBoundingClientRect();
+                spawnParticles(rect.left - rectCanvas.left + rect.width / 2, rect.top - rectCanvas.top + rect.height / 2, '#ffa502', 14);
+                el.classList.add('animate-pop');
+              }
+              gridState[r][c] = null;
+            }
+          }
+        }
+      } else if (bType === 'hammer') {
+        playSound('hammer');
+        // Destruye el bloque exacto (incluso metal)
+        const item = gridState[targetR][targetC];
+        if (item && item.type === 'block') {
+          const el = document.getElementById(`cell-${item.id}`);
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            spawnParticles(rect.left - rectCanvas.left + rect.width / 2, rect.top - rectCanvas.top + rect.height / 2, '#2ed573', 15);
+            el.classList.add('animate-pop');
+          }
+          gridState[targetR][targetC] = null;
+        }
+      }
+
+      await new Promise(res => setTimeout(res, 200));
+      await applyBoardPhysics();
+      await checkPetRescues();
+      setTimeout(computeHintInBackground, 50);
+      checkEndGameConditions();
+      isProcessing = false;
+    }
+
+    /* =====================================================================
+       FÍSICA DEL TABLERO VINCULADA AL DOM
+       ===================================================================== */
+    async function applyBoardPhysics() {
+      // 1. Gravedad vertical
+      for (let c = 0; c < COLS; c++) {
+        let emptyR = ROWS - 1;
+        for (let r = ROWS - 1; r >= 0; r--) {
+          if (gridState[r][c] !== null) {
+            if (emptyR !== r) {
+              gridState[emptyR][c] = gridState[r][c];
+              gridState[r][c] = null;
+            }
+            emptyR--;
+          }
+        }
+      }
+
+      // 2. Colapso lateral de columnas vacías
+      for (let c = 0; c < COLS - 1; c++) {
+        let isColEmpty = true;
+        for (let r = 0; r < ROWS; r++) {
+          if (gridState[r][c] !== null) {
+            isColEmpty = false;
+            break;
+          }
+        }
+
+        if (isColEmpty) {
+          let foundContentOnRight = false;
+          for (let nc = c + 1; nc < COLS; nc++) {
+            for (let r = 0; r < ROWS; r++) {
+              if (gridState[r][nc] !== null) {
+                foundContentOnRight = true;
+                break;
+              }
+            }
+            if (foundContentOnRight) {
+              for (let r = 0; r < ROWS; r++) {
+                gridState[r][c] = gridState[r][nc];
+                gridState[r][nc] = null;
+              }
+              c--;
+              break;
+            }
+          }
+        }
+      }
+
+      renderBoard();
+    }
+
+    async function checkPetRescues() {
+      let rescuedAny = false;
+      const rectCanvas = fxCanvas.getBoundingClientRect();
+
+      for (let c = 0; c < COLS; c++) {
+        const bottomItem = gridState[ROWS - 1][c];
+        if (bottomItem && bottomItem.type === 'pet') {
+          rescuedAny = true;
+          rescuedCount++;
+          score += 300;
+          updateStatsUI();
+          playSound('rescue');
+
+          const el = document.getElementById(`cell-${bottomItem.id}`);
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            spawnParticles(rect.left - rectCanvas.left + rect.width / 2, rect.top - rectCanvas.top + rect.height / 2, '#ff4757', 16, true);
+            spawnParticles(rect.left - rectCanvas.left + rect.width / 2, rect.top - rectCanvas.top + rect.height / 2, '#ffd32a', 16, false);
+          }
+          gridState[ROWS - 1][c] = null;
+        }
+      }
+
+      if (rescuedAny) {
+        await new Promise(res => setTimeout(res, 220));
+        await applyBoardPhysics();
+        await checkPetRescues(); // Recursivo
+      }
+    }
+
+    function checkEndGameConditions() {
+      if (rescuedCount >= targetPetsCount) {
+        playSound('win');
+        showModal(
+          '🎉',
+          '¡Nivel Superado!',
+          `¡Salvaste a las ${targetPetsCount} mascotas!`,
+          score,
+          'Siguiente Nivel',
+          () => {
+            hideModal();
+            if (isProceduralLevel) {
+              generateGuaranteedLevel();
+            } else {
+              const nextId = (currentLevelNumber % PRESET_LEVELS.length) + 1;
+              loadPresetLevel(nextId);
+            }
+          },
+          'Repetir Mismo Nivel',
+          () => {
+            hideModal();
+            loadLevelFromMatrix(savedInitialState);
+          }
+        );
+      } else if (movesLeft <= 0) {
+        playSound('lose');
+        showModal(
+          '😢',
+          '¡Sin Movimientos!',
+          `Te faltaron ${targetPetsCount - rescuedCount} mascotas por rescatar.`,
+          score,
+          'Reintentar Mismo Nivel',
+          () => {
+            hideModal();
+            loadLevelFromMatrix(savedInitialState);
+          },
+          'Nivel Aleatorio Garantizado',
+          () => {
+            hideModal();
+            generateGuaranteedLevel();
+          }
+        );
+      }
+    }
+
+    /* =====================================================================
+       PISTA / HINT CALCULADA POR EL SOLVER
+       ===================================================================== */
+    function clearHints() {
+      document.querySelectorAll('.hint-highlight').forEach(el => {
+        el.classList.remove('hint-highlight');
+      });
+    }
+
+    btnHint.addEventListener('click', () => {
+      clearHints();
+      let hintCoord = null;
+
+      if (cachedSolution && cachedSolution.length > 0) {
+        hintCoord = cachedSolution[0];
+      } else {
+        // Resolver en tiempo real si no estaba en caché
+        const currentMatrix = gridStateToCharMatrix(gridState);
+        const res = solveBoard(currentMatrix, movesLeft, targetPetsCount - rescuedCount);
+        if (res.solvable && res.path.length > 0) {
+          cachedSolution = res.path;
+          hintCoord = cachedSolution[0];
+        }
+      }
+
+      if (hintCoord) {
+        const [hr, hc] = hintCoord;
+        const targetItem = gridState[hr][hc];
+        if (targetItem && targetItem.type === 'block') {
+          const group = findConnectedGroup(hr, hc, targetItem.color);
+          group.forEach(b => {
+            const item = gridState[b.r][b.c];
+            const el = document.getElementById(`cell-${item.id}`);
+            if (el) el.classList.add('hint-highlight');
+          });
+          playSound('pop');
+        }
+      } else {
+        // Si no hay solución matemática sin boosters, sugerir usar un booster
+        boosterBanner.classList.remove('hidden');
+        boosterBannerText.textContent = '💡 Sugerencia: No hay combinaciones directas. ¡Usa un Booster!';
+        setTimeout(() => {
+          if (!activeBooster) boosterBanner.classList.add('hidden');
+        }, 3000);
+      }
+    });
+
+    /* =====================================================================
+       CONTROLADORES DE EVENTOS
+       ===================================================================== */
+    btnRestart.addEventListener('click', () => {
+      if (savedInitialState) loadLevelFromMatrix(savedInitialState);
+    });
+
+    btnNextLevel.addEventListener('click', () => {
+      if (isProceduralLevel) {
+        generateGuaranteedLevel();
+      } else {
+        const nextId = (currentLevelNumber % PRESET_LEVELS.length) + 1;
+        loadPresetLevel(nextId);
+      }
+    });
+
+    btnGenerateGuaranteed.addEventListener('click', generateGuaranteedLevel);
+
+    btnSound.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      soundIcon.className = soundEnabled ? 'fa-solid fa-volume-high text-sm' : 'fa-solid fa-volume-xmark text-sm';
+      btnSound.classList.toggle('opacity-50', !soundEnabled);
+    });
+
+    // Boosters clicks
+    boosterRocketBtn.addEventListener('click', () => setBooster('rocket'));
+    boosterBombBtn.addEventListener('click', () => setBooster('bomb'));
+    boosterHammerBtn.addEventListener('click', () => setBooster('hammer'));
+    btnCancelBooster.addEventListener('click', cancelActiveBooster);
+
+    // Modal de Niveles
+    btnOpenLevels.addEventListener('click', () => {
+      levelsGridButtons.innerHTML = '';
+      PRESET_LEVELS.forEach(lvl => {
+        const btn = document.createElement('button');
+        btn.className = `py-2.5 rounded-xl font-bold game-font text-base shadow border transition active:scale-95 ${lvl.id === currentLevelNumber && !isProceduralLevel ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300'}`;
+        btn.textContent = lvl.id;
+        btn.addEventListener('click', () => {
+          levelsModal.classList.add('hidden');
+          loadPresetLevel(lvl.id);
+        });
+        levelsGridButtons.appendChild(btn);
+      });
+      levelsModal.classList.remove('hidden');
+    });
+
+    btnCloseLevels.addEventListener('click', () => {
+      levelsModal.classList.add('hidden');
+    });
+
+    /* =====================================================================
+       MODAL DE VICTORIA / DERROTA
+       ===================================================================== */
+    function showModal(icon, title, desc, finalScore, primaryText, primaryAction, secondaryText, secondaryAction) {
+      modalIcon.textContent = icon;
+      modalTitle.textContent = title;
+      modalDesc.textContent = desc;
+      modalScore.textContent = finalScore.toLocaleString();
+
+      modalBtnPrimary.textContent = primaryText;
+      modalBtnPrimary.onclick = primaryAction;
+
+      modalBtnSecondary.textContent = secondaryText;
+      modalBtnSecondary.onclick = secondaryAction;
+
+      modalOverlay.classList.remove('hidden');
+      setTimeout(() => {
+        modalBox.classList.remove('scale-90');
+        modalBox.classList.add('scale-100');
+      }, 20);
+    }
+
+    function hideModal() {
+      modalBox.classList.remove('scale-100');
+      modalBox.classList.add('scale-90');
+      setTimeout(() => {
+        modalOverlay.classList.add('hidden');
+      }, 150);
+    }
+
+    /* INICIALIZACIÓN */
+    window.onload = function () {
+      loadPresetLevel(1);
+      resizeCanvas();
+      updateParticles();
+    };
+  </script>
+</body>
+</html>
