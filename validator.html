@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificador Algorítmico de Niveles - Pet Rescue</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@600;700&display=swap');
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      min-height: 100vh;
+      color: #f8fafc;
+    }
+    .game-font { font-family: 'Fredoka One', cursive; }
+    
+    .cell-preview {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .c-R { background: #ef4444; border: 1px solid #f87171; }
+    .c-B { background: #3b82f6; border: 1px solid #60a5fa; }
+    .c-G { background: #10b981; border: 1px solid #34d399; }
+    .c-Y { background: #f59e0b; border: 1px solid #fbbf24; }
+    .c-P { background: #a855f7; border: 1px solid #c084fc; }
+    .c-M { background: #64748b; border: 1px solid #94a3b8; }
+    .c-dot { background: rgba(255,255,255,0.05); }
+    .c-pet { background: #fef08a; border: 1px solid #fde047; }
+  </style>
+</head>
+<body class="p-4 sm:p-6">
+  <div class="max-w-6xl mx-auto space-y-6">
+    
+    <!-- ENCABEZADO -->
+    <header class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-800/80 backdrop-blur-md p-4 sm:p-6 rounded-3xl border border-slate-700 shadow-xl">
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="text-3xl">🔬</span>
+          <h1 class="game-font text-2xl sm:text-3xl text-emerald-400">Verificador de Soluciones</h1>
+        </div>
+        <p class="text-slate-400 text-xs sm:text-sm mt-1">
+          Validador algorítmico matemático (BFS / A* con poda) que prueba si los tableros pueden resolverse al 100% sin usar boosters.
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="index.html" class="px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-sm text-white shadow-lg transition active:scale-95 flex items-center gap-2">
+          <i class="fa-solid fa-gamepad"></i> Ir al Juego
+        </a>
+      </div>
+    </header>
+
+    <!-- BARRA DE ACCIÓN Y ESTADÍSTICAS -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700 flex flex-col justify-between">
+        <div class="text-xs text-slate-400 uppercase font-bold">Total Niveles</div>
+        <div id="stat-total" class="game-font text-3xl text-sky-400">0</div>
+      </div>
+      <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700 flex flex-col justify-between">
+        <div class="text-xs text-slate-400 uppercase font-bold">Solución Garantizada</div>
+        <div id="stat-solvable" class="game-font text-3xl text-emerald-400">0</div>
+      </div>
+      <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700 flex flex-col justify-between">
+        <div class="text-xs text-slate-400 uppercase font-bold">Sin Solución</div>
+        <div id="stat-unsolvable" class="game-font text-3xl text-rose-400">0</div>
+      </div>
+      <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700 flex flex-col justify-between">
+        <div class="text-xs text-slate-400 uppercase font-bold">Tasa de Solvabilidad</div>
+        <div id="stat-rate" class="game-font text-3xl text-amber-400">0%</div>
+      </div>
+    </div>
+
+    <!-- CONTROLES -->
+    <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="btn-verify-all" class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 font-bold rounded-xl text-white shadow-md active:scale-95 transition flex items-center gap-2">
+          <i class="fa-solid fa-play"></i> Verificar Todos los Niveles
+        </button>
+        <button id="btn-stop" class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 font-bold rounded-xl text-slate-300 shadow-md hidden">
+          Detener
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2 text-xs">
+        <span class="text-slate-400 font-bold">Filtrar:</span>
+        <button id="filter-all" class="px-2.5 py-1 bg-slate-700 text-white rounded-lg font-bold">Todos</button>
+        <button id="filter-ok" class="px-2.5 py-1 bg-slate-800 text-emerald-400 rounded-lg font-bold hover:bg-slate-700">OK</button>
+        <button id="filter-fail" class="px-2.5 py-1 bg-slate-800 text-rose-400 rounded-lg font-bold hover:bg-slate-700">Fallidos</button>
+      </div>
+    </div>
+
+    <!-- BARRA DE PROGRESO -->
+    <div id="progress-wrapper" class="hidden bg-slate-800/80 p-3 rounded-2xl border border-slate-700 space-y-2">
+      <div class="flex justify-between text-xs font-bold text-slate-400">
+        <span id="progress-status">Verificando nivel 1...</span>
+        <span id="progress-percent">0%</span>
+      </div>
+      <div class="w-full bg-slate-700 h-2.5 rounded-full overflow-hidden">
+        <div id="progress-bar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full w-0 transition-all duration-150"></div>
+      </div>
+    </div>
+
+    <!-- ÁREA PRINCIPAL: TABLA + DETALLE VISUAL -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- LISTA DE NIVELES (COL 7) -->
+      <div class="lg:col-span-7 bg-slate-800/80 rounded-3xl border border-slate-700 p-4 shadow-xl flex flex-col h-[600px]">
+        <h2 class="game-font text-lg text-slate-200 mb-3 flex items-center justify-between">
+          <span>Listado de Niveles</span>
+          <span class="text-xs font-sans text-slate-400 font-normal">Clic en un nivel para inspeccionar su solución</span>
+        </h2>
+        <div class="flex-1 overflow-y-auto space-y-1.5 pr-2" id="levels-list">
+          <div class="text-center py-12 text-slate-500 text-sm">Cargando niveles del archivo JSON...</div>
+        </div>
+      </div>
+
+      <!-- VISOR DEL TABLERO Y SECUENCIA DE PASOS (COL 5) -->
+      <div class="lg:col-span-5 bg-slate-800/80 rounded-3xl border border-slate-700 p-5 shadow-xl flex flex-col h-[600px]">
+        <div class="flex items-center justify-between border-b border-slate-700 pb-3 mb-3">
+          <div>
+            <h3 id="preview-title" class="game-font text-xl text-emerald-400">Selecciona un Nivel</h3>
+            <div id="preview-meta" class="text-xs text-slate-400">Metadatos del nivel</div>
+          </div>
+          <span id="preview-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-700 text-slate-300">--</span>
+        </div>
+
+        <!-- Matriz visual 8x6 -->
+        <div class="flex justify-center my-auto">
+          <div id="preview-grid" class="grid grid-cols-6 gap-1.5 p-3 bg-slate-900/90 rounded-2xl border border-slate-700 shadow-inner">
+            <!-- Celdas renderizadas dinámicamente -->
+          </div>
+        </div>
+
+        <!-- Secuencia de Pasos -->
+        <div class="mt-4 pt-3 border-t border-slate-700">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-xs uppercase font-bold text-slate-400">Pasos Ganadores de la Solución</span>
+            <span id="preview-steps-count" class="text-xs text-emerald-400 font-bold">0 pasos</span>
+          </div>
+          <div id="preview-steps-container" class="bg-slate-900/60 p-2.5 rounded-xl text-xs font-mono text-slate-300 h-24 overflow-y-auto leading-relaxed border border-slate-700">
+            Selecciona un nivel resuelto para ver los clics exactos (fila, columna).
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- SCRIPT DEL VERIFICADOR -->
+  <script src="js/levelManager.js"></script>
+  <script>
+    const ROWS = 8;
+    const COLS = 6;
+    const BLOCK_COLORS = ['R', 'B', 'G', 'Y', 'P'];
+    const PET_SYMBOLS = ['D', 'C'];
+
+    let allLevels = [];
+    let verificationResults = new Map(); // id -> { solvable, minMoves, path, timeMs }
+    let isRunning = false;
+    let stopRequested = false;
+    let selectedLevelId = null;
+
+    // Elementos DOM
+    const statTotal = document.getElementById('stat-total');
+    const statSolvable = document.getElementById('stat-solvable');
+    const statUnsolvable = document.getElementById('stat-unsolvable');
+    const statRate = document.getElementById('stat-rate');
+    const btnVerifyAll = document.getElementById('btn-verify-all');
+    const btnStop = document.getElementById('btn-stop');
+    const progressWrapper = document.getElementById('progress-wrapper');
+    const progressStatus = document.getElementById('progress-status');
+    const progressPercent = document.getElementById('progress-percent');
+    const progressBar = document.getElementById('progress-bar');
+    const levelsList = document.getElementById('levels-list');
+    const previewTitle = document.getElementById('preview-title');
+    const previewMeta = document.getElementById('preview-meta');
+    const previewBadge = document.getElementById('preview-badge');
+    const previewGrid = document.getElementById('preview-grid');
+    const previewStepsContainer = document.getElementById('preview-steps-container');
+    const previewStepsCount = document.getElementById('preview-steps-count');
+
+    /* =====================================================================
+       MOTOR FÍSICO PURO EN JS (IDÉNTICO AL JUEGO)
+       ===================================================================== */
+    function cloneMatrix(m) {
+      return m.map(row => [...row]);
+    }
+
+    function simulatePhysics(board) {
+      // 1. Gravedad
+      for (let c = 0; c < COLS; c++) {
+        let emptyR = ROWS - 1;
+        for (let r = ROWS - 1; r >= 0; r--) {
+          if (board[r][c] !== '.') {
+            if (emptyR !== r) {
+              board[emptyR][c] = board[r][c];
+              board[r][c] = '.';
+            }
+            emptyR--;
+          }
+        }
+      }
+
+      // 2. Colapso hacia la izquierda
+      for (let c = 0; c < COLS - 1; c++) {
+        let isEmpty = true;
+        for (let r = 0; r < ROWS; r++) {
+          if (board[r][c] !== '.') {
+            isEmpty = false;
+            break;
+          }
+        }
+        if (isEmpty) {
+          let foundRight = false;
+          for (let nc = c + 1; nc < COLS; nc++) {
+            for (let r = 0; r < ROWS; r++) {
+              if (board[r][nc] !== '.') {
+                foundRight = true;
+                break;
+              }
+            }
+            if (foundRight) {
+              for (let r = 0; r < ROWS; r++) {
+                board[r][c] = board[r][nc];
+                board[r][nc] = '.';
+              }
+              c--;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    function checkRescues(board) {
+      let rescued = 0;
+      for (let c = 0; c < COLS; c++) {
+        const bottom = board[ROWS - 1][c];
+        if (PET_SYMBOLS.includes(bottom)) {
+          board[ROWS - 1][c] = '.';
+          rescued++;
+        }
+      }
+      if (rescued > 0) {
+        simulatePhysics(board);
+        rescued += checkRescues(board);
+      }
+      return rescued;
+    }
+
+    function getConnectedGroup(board, startR, startC) {
+      const target = board[startR][startC];
+      if (!BLOCK_COLORS.includes(target)) return [];
+
+      const queue = [[startR, startC]];
+      const visited = new Set([`${startR},${startC}`]);
+      const group = [];
+
+      while (queue.length > 0) {
+        const [r, c] = queue.shift();
+        group.push([r, c]);
+
+        const dirs = [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]];
+        for (const [nr, nc] of dirs) {
+          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+            const k = `${nr},${nc}`;
+            if (!visited.has(k) && board[nr][nc] === target) {
+              visited.add(k);
+              queue.push([nr, nc]);
+            }
+          }
+        }
+      }
+      return group;
+    }
+
+    function boardToHash(b) {
+      return b.map(r => r.join('')).join('|');
+    }
+
+    /* =====================================================================
+       SOLVER ALGORÍTMICO CLIENT-SIDE (A* / BFS HEURÍSTICO)
+       ===================================================================== */
+    function solveLevel(layout, maxMoves, targetPets, maxIterations = 4500) {
+      const startBoard = cloneMatrix(layout);
+      const initialRescued = checkRescues(startBoard);
+
+      if (initialRescued >= targetPets) {
+        return { solvable: true, minMoves: 0, path: [] };
+      }
+
+      const queue = [{
+        board: startBoard,
+        movesMade: 0,
+        rescued: initialRescued,
+        path: []
+      }];
+
+      const visited = new Set([boardToHash(startBoard)]);
+      let iterations = 0;
+
+      while (queue.length > 0 && iterations < maxIterations) {
+        iterations++;
+        const cur = queue.shift();
+
+        if (cur.rescued >= targetPets) {
+          return { solvable: true, minMoves: cur.movesMade, path: cur.path };
+        }
+
+        if (cur.movesMade >= maxMoves) continue;
+
+        const processed = new Set();
+        const available = [];
+
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (!processed.has(`${r},${c}`) && BLOCK_COLORS.includes(cur.board[r][c])) {
+              const grp = getConnectedGroup(cur.board, r, c);
+              grp.forEach(([gr, gc]) => processed.add(`${gr},${gc}`));
+              if (grp.length >= 2) {
+                available.push({ r, c, grp });
+              }
+            }
+          }
+        }
+
+        available.sort((a, b) => b.grp.length - a.grp.length);
+
+        for (const m of available) {
+          const nextBoard = cloneMatrix(cur.board);
+          for (const [gr, gc] of m.grp) {
+            nextBoard[gr][gc] = '.';
+          }
+
+          simulatePhysics(nextBoard);
+          const newRescued = cur.rescued + checkRescues(nextBoard);
+          const nextMoves = cur.movesMade + 1;
+          const nextPath = [...cur.path, [m.r, m.c]];
+
+          if (newRescued >= targetPets) {
+            return { solvable: true, minMoves: nextMoves, path: nextPath };
+          }
+
+          const h = boardToHash(nextBoard);
+          if (!visited.has(h)) {
+            visited.add(h);
+            queue.push({
+              board: nextBoard,
+              movesMade: nextMoves,
+              rescued: newRescued,
+              path: nextPath
+            });
+          }
+        }
+      }
+
+      return { solvable: false, minMoves: null, path: null };
+    }
+
+    /* =====================================================================
+       CARGA DE ARCHIVOS Y RENDERIZADO
+       ===================================================================== */
+    async function init() {
+      const mgr = new LevelManager();
+      try {
+        const levels = await mgr.loadChunkForLevel(1);
+        if (levels && levels.length > 0) {
+          allLevels = levels;
+          statTotal.textContent = allLevels.length;
+          renderLevelsList();
+          selectLevel(allLevels[0].id);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function renderLevelsList(filter = 'all') {
+      levelsList.innerHTML = '';
+      
+      allLevels.forEach(lvl => {
+        const res = verificationResults.get(lvl.id);
+        if (filter === 'ok' && (!res || !res.solvable)) return;
+        if (filter === 'fail' && (!res || res.solvable)) return;
+
+        const row = document.createElement('div');
+        const isSelected = lvl.id === selectedLevelId;
+        
+        let badgeHtml = '<span class="text-xs text-slate-500">Pendiente</span>';
+        if (res) {
+          badgeHtml = res.solvable
+            ? `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">✓ ${res.minMoves}/${lvl.moves}m</span>`
+            : `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">✗ Falló</span>`;
+        }
+
+        row.className = `flex items-center justify-between p-2.5 rounded-xl cursor-pointer border transition ${isSelected ? 'bg-emerald-950/60 border-emerald-500 text-white' : 'bg-slate-900/40 border-slate-700/60 hover:bg-slate-700/40 text-slate-300'}`;
+        row.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="game-font text-sm text-slate-400 w-8">#${lvl.id}</span>
+            <div>
+              <div class="font-bold text-xs sm:text-sm">${lvl.name}</div>
+              <div class="text-[10px] text-slate-400">🐾 ${lvl.targetPets} Mascotas | 🎯 ${lvl.moves} Movs máx.</div>
+            </div>
+          </div>
+          <div>${badgeHtml}</div>
+        `;
+
+        row.addEventListener('click', () => selectLevel(lvl.id));
+        levelsList.appendChild(row);
+      });
+    }
+
+    function selectLevel(levelId) {
+      selectedLevelId = levelId;
+      const lvl = allLevels.find(l => l.id === levelId);
+      if (!lvl) return;
+
+      renderLevelsList();
+
+      previewTitle.textContent = lvl.name;
+      previewMeta.textContent = `Nivel #${lvl.id} | ${lvl.targetPets} Mascotas a salvar | ${lvl.moves} Movimientos permitidos`;
+
+      const res = verificationResults.get(levelId);
+      if (res && res.solvable) {
+        previewBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white shadow-md';
+        previewBadge.textContent = `SOLUCIÓN VERIFICADA (${res.minMoves} movs)`;
+        previewStepsCount.textContent = `${res.path.length} clics`;
+
+        let stepsText = res.path.map((p, idx) => {
+          return `Paso ${String(idx + 1).padStart(2, '0')}: Clic en fila ${p[0]}, columna ${p[1]}`;
+        }).join('\n');
+        previewStepsContainer.textContent = stepsText;
+      } else if (res && !res.solvable) {
+        previewBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-rose-500 text-white';
+        previewBadge.textContent = 'NO RESUELTO';
+        previewStepsCount.textContent = '0 pasos';
+        previewStepsContainer.textContent = 'No se encontró solución válida en el límite de iteraciones.';
+      } else {
+        previewBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-slate-700 text-slate-300';
+        previewBadge.textContent = 'PENDIENTE DE PRUEBA';
+        previewStepsCount.textContent = '--';
+        previewStepsContainer.textContent = 'Presiona "Verificar Todos" o prueba individualmente.';
+      }
+
+      // Renderizar grid 8x6
+      previewGrid.innerHTML = '';
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const char = lvl.layout[r][c];
+          const cell = document.createElement('div');
+          cell.className = 'cell-preview';
+
+          if (char === '.') {
+            cell.classList.add('c-dot');
+          } else if (char === 'M') {
+            cell.classList.add('c-M');
+            cell.innerHTML = '<i class="fa-solid fa-cube text-[10px]"></i>';
+          } else if (char === 'D') {
+            cell.classList.add('c-pet');
+            cell.textContent = '🐶';
+          } else if (char === 'C') {
+            cell.classList.add('c-pet');
+            cell.textContent = '🐱';
+          } else {
+            cell.classList.add(`c-${char}`);
+          }
+          previewGrid.appendChild(cell);
+        }
+      }
+    }
+
+    /* =====================================================================
+       VERIFICACIÓN EN LOTE (BATCH RUNNER)
+       ===================================================================== */
+    btnVerifyAll.addEventListener('click', async () => {
+      if (isRunning) return;
+      isRunning = true;
+      stopRequested = false;
+      btnVerifyAll.classList.add('hidden');
+      btnStop.classList.remove('hidden');
+      progressWrapper.classList.remove('hidden');
+
+      let solvableCount = 0;
+      let unsolvableCount = 0;
+
+      for (let i = 0; i < allLevels.length; i++) {
+        if (stopRequested) break;
+        const lvl = allLevels[i];
+
+        progressStatus.textContent = `Verificando ${lvl.name} (${i + 1}/${allLevels.length})...`;
+        const pct = Math.round(((i + 1) / allLevels.length) * 100);
+        progressPercent.textContent = `${pct}%`;
+        progressBar.style.width = `${pct}%`;
+
+        // Pequeño delay para no bloquear la UI
+        await new Promise(r => setTimeout(r, 8));
+
+        const t0 = performance.now();
+        const res = solveLevel(lvl.layout, lvl.moves, lvl.targetPets);
+        const dt = performance.now() - t0;
+        res.timeMs = dt;
+
+        verificationResults.set(lvl.id, res);
+
+        if (res.solvable) solvableCount++;
+        else unsolvableCount++;
+
+        statSolvable.textContent = solvableCount;
+        statUnsolvable.textContent = unsolvableCount;
+        const rate = Math.round((solvableCount / (i + 1)) * 100);
+        statRate.textContent = `${rate}%`;
+
+        if (selectedLevelId === lvl.id) {
+          selectLevel(lvl.id);
+        }
+      }
+
+      renderLevelsList();
+      if (selectedLevelId) selectLevel(selectedLevelId);
+
+      isRunning = false;
+      btnVerifyAll.classList.remove('hidden');
+      btnStop.classList.add('hidden');
+      progressStatus.textContent = `¡Verificación completa! ${solvableCount} de ${allLevels.length} niveles resueltos al 100%.`;
+    });
+
+    btnStop.addEventListener('click', () => {
+      stopRequested = true;
+    });
+
+    document.getElementById('filter-all').onclick = () => renderLevelsList('all');
+    document.getElementById('filter-ok').onclick = () => renderLevelsList('ok');
+    document.getElementById('filter-fail').onclick = () => renderLevelsList('fail');
+
+    window.onload = init;
+  </script>
+</body>
+</html>
+

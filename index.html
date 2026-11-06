@@ -134,6 +134,8 @@
       transform: scale(1.05);
     }
   </style>
+  <!-- Scripts -->
+  <script src="js/levelManager.js"></script>
 </head>
 <body class="flex flex-col items-center justify-between p-2 sm:p-4 min-h-screen">
 
@@ -233,33 +235,57 @@
 
   <!-- BARRA DE PODERES / BOOSTERS -->
   <section class="w-full max-w-md mx-auto flex flex-col gap-1.5 mt-2">
-    <div class="flex items-center justify-around bg-white/90 backdrop-blur-md p-2 rounded-2xl shadow-lg border-2 border-white">
+    
+    <!-- MEDIDOR DE CARGA DE MISIL (Estilo Pet Rescue Saga) -->
+    <div class="flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-2xl shadow-md border-2 border-white">
+      <span class="text-xs font-bold text-slate-700 flex items-center gap-1">
+        🚀 Carga:
+      </span>
+      <div class="flex-1 bg-slate-200 h-3 rounded-full overflow-hidden relative shadow-inner">
+        <div id="rocket-charge-bar" class="h-full bg-gradient-to-r from-amber-400 via-rose-500 to-red-500 rounded-full transition-all duration-300 w-0"></div>
+      </div>
+      <span id="rocket-charge-text" class="text-[11px] font-extrabold text-slate-700 min-w-[32px] text-right">0%</span>
+      <button id="btn-refill-boosters" class="px-2 py-0.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px] uppercase shadow transition active:scale-95" title="Recargar todas las ayudas">
+        + Ayudas
+      </button>
+    </div>
+
+    <!-- BOTONES DE BOOSTERS -->
+    <div class="grid grid-cols-5 gap-1.5 bg-white/90 backdrop-blur-md p-2 rounded-2xl shadow-lg border-2 border-white">
       
-      <!-- Booster 1: Cohete (Limpia Columna) -->
-      <button id="booster-rocket" class="booster-btn flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-b from-rose-50 to-rose-100 border border-rose-300 text-rose-800 shadow-sm">
-        <span class="text-xl">🚀</span>
-        <div class="text-left">
-          <div class="text-[11px] font-bold uppercase leading-none">Cohete</div>
-          <span class="text-[10px] text-rose-600 font-extrabold" id="count-rocket">x2</span>
-        </div>
+      <!-- Booster 1: Cohete Vertical (Limpia Columna) -->
+      <button id="booster-rocket" class="booster-btn flex flex-col items-center justify-center p-1 rounded-xl bg-gradient-to-b from-rose-50 to-rose-100 border border-rose-300 text-rose-800 shadow-sm" title="Misil de Columna: Destruye toda la columna">
+        <span class="text-lg">🚀</span>
+        <div class="text-[9px] font-bold uppercase leading-tight mt-0.5">Columna</div>
+        <span class="text-[9px] text-rose-600 font-extrabold" id="count-rocket">x2</span>
       </button>
 
-      <!-- Booster 2: Bomba (Área 3x3) -->
-      <button id="booster-bomb" class="booster-btn flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-b from-amber-50 to-amber-100 border border-amber-300 text-amber-900 shadow-sm">
-        <span class="text-xl">💣</span>
-        <div class="text-left">
-          <div class="text-[11px] font-bold uppercase leading-none">Bomba</div>
-          <span class="text-[10px] text-amber-700 font-extrabold" id="count-bomb">x2</span>
-        </div>
+      <!-- Booster 2: Láser Horizontal (Limpia Fila) -->
+      <button id="booster-row-rocket" class="booster-btn flex flex-col items-center justify-center p-1 rounded-xl bg-gradient-to-b from-cyan-50 to-cyan-100 border border-cyan-300 text-cyan-800 shadow-sm" title="Láser de Fila: Destruye toda la fila horizontal">
+        <span class="text-lg">↔️</span>
+        <div class="text-[9px] font-bold uppercase leading-tight mt-0.5">Fila</div>
+        <span class="text-[9px] text-cyan-700 font-extrabold" id="count-row-rocket">x2</span>
       </button>
 
-      <!-- Booster 3: Martillo (Un Bloque) -->
-      <button id="booster-hammer" class="booster-btn flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-b from-sky-50 to-sky-100 border border-sky-300 text-sky-900 shadow-sm">
-        <span class="text-xl">🔨</span>
-        <div class="text-left">
-          <div class="text-[11px] font-bold uppercase leading-none">Martillo</div>
-          <span class="text-[10px] text-sky-700 font-extrabold" id="count-hammer">x3</span>
-        </div>
+      <!-- Booster 3: Bomba (Área 3x3) -->
+      <button id="booster-bomb" class="booster-btn flex flex-col items-center justify-center p-1 rounded-xl bg-gradient-to-b from-amber-50 to-amber-100 border border-amber-300 text-amber-900 shadow-sm" title="Bomba: Explota un área de 3x3 bloques">
+        <span class="text-lg">💣</span>
+        <div class="text-[9px] font-bold uppercase leading-tight mt-0.5">Bomba</div>
+        <span class="text-[9px] text-amber-700 font-extrabold" id="count-bomb">x2</span>
+      </button>
+
+      <!-- Booster 4: Martillo (Un Bloque o Metal) -->
+      <button id="booster-hammer" class="booster-btn flex flex-col items-center justify-center p-1 rounded-xl bg-gradient-to-b from-sky-50 to-sky-100 border border-sky-300 text-sky-900 shadow-sm" title="Martillo: Destruye un bloque o metal individual">
+        <span class="text-lg">🔨</span>
+        <div class="text-[9px] font-bold uppercase leading-tight mt-0.5">Martillo</div>
+        <span class="text-[9px] text-sky-700 font-extrabold" id="count-hammer">x3</span>
+      </button>
+
+      <!-- Booster 5: Bomba de Color (Todos los bloques de ese color) -->
+      <button id="booster-color-bomb" class="booster-btn flex flex-col items-center justify-center p-1 rounded-xl bg-gradient-to-b from-purple-50 to-purple-100 border border-purple-300 text-purple-900 shadow-sm" title="Bomba de Color: Elimina todos los bloques del color tocado">
+        <span class="text-lg">🎨</span>
+        <div class="text-[9px] font-bold uppercase leading-tight mt-0.5">Color</div>
+        <span class="text-[9px] text-purple-700 font-extrabold" id="count-color-bomb">x2</span>
       </button>
 
     </div>
@@ -267,14 +293,43 @@
 
   <!-- MODAL SELECTOR DE NIVELES PREDEFINIDOS -->
   <div id="levels-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl p-5 max-w-xs w-full text-center shadow-2xl border-4 border-emerald-400">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="game-font text-xl text-emerald-800">Seleccionar Nivel</h3>
+    <div class="bg-white rounded-3xl p-5 max-w-sm sm:max-w-md w-full text-center shadow-2xl border-4 border-emerald-400">
+      <div class="flex justify-between items-center mb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🗺️</span>
+          <h3 class="game-font text-xl text-emerald-800">Seleccionar Nivel</h3>
+        </div>
         <button id="btn-close-levels" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200">✕</button>
       </div>
-      <p class="text-xs text-slate-500 font-semibold mb-4">Niveles con distribución fija para practicar estrategias:</p>
-      <div class="grid grid-cols-5 gap-2 mb-4" id="levels-grid-buttons">
-        <!-- Generados por script -->
+
+      <!-- Barra de pestañas por rangos de niveles -->
+      <div class="flex items-center justify-center gap-1 mb-3 overflow-x-auto py-1" id="level-range-tabs">
+        <button data-range="1-20" class="range-tab px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-500 text-white shadow-sm">1-20</button>
+        <button data-range="21-40" class="range-tab px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">21-40</button>
+        <button data-range="41-60" class="range-tab px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">41-60</button>
+        <button data-range="61-80" class="range-tab px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">61-80</button>
+        <button data-range="81-100" class="range-tab px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">81-100</button>
+      </div>
+      
+      <!-- Entrada rápida para saltar a cualquier nivel (hasta 6 cifras: 1 a 999999) -->
+      <form id="form-jump-level" class="flex gap-2 mb-3">
+        <input type="number" id="input-jump-level" min="1" max="999999" placeholder="Nivel directo (1 - 999999)"
+          class="flex-1 px-3 py-1.5 rounded-xl border border-slate-300 text-sm font-bold text-center focus:outline-none focus:border-emerald-500">
+        <button type="submit" class="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow">Ir</button>
+      </form>
+
+      <div class="grid grid-cols-5 gap-2 mb-4 max-h-56 overflow-y-auto p-1 border border-slate-100 rounded-xl" id="levels-grid-buttons">
+        <!-- Generados dinámicamente -->
+      </div>
+
+      <!-- Enlace al Verificador de Soluciones -->
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+        <span class="text-emerald-700 font-bold flex items-center gap-1">
+          <i class="fa-solid fa-check-circle text-emerald-500"></i> Solución 100% Verificada
+        </span>
+        <a href="validator.html" target="_blank" class="text-sky-600 hover:text-sky-700 font-bold underline flex items-center gap-1">
+          <i class="fa-solid fa-microchip"></i> Verificador IA
+        </a>
       </div>
     </div>
   </div>
@@ -310,88 +365,95 @@
     const COLS = 6;
     const ROWS = 8;
 
-    const PRESET_LEVELS = [
-      // Nivel 1: Introductorio (Fácil rescate de 2 mascotas)
+    // Instancia del Administrador Modular de Niveles
+    const levelManager = new LevelManager();
+
+    // Niveles predeterminados de respaldo (Fallback offline garantizados 100% resolubles)
+    const PRESET_FALLBACK_LEVELS = [
       {
         id: 1,
-        moves: 18,
+        name: "Nivel 1 - Aventura Inicial",
+        moves: 20,
         targetPets: 2,
         layout: [
-          ['.', 'D', '.', '.', 'C', '.'],
-          ['R', 'R', 'B', 'B', 'G', 'G'],
-          ['R', 'B', 'B', 'Y', 'G', 'Y'],
-          ['Y', 'Y', 'R', 'R', 'Y', 'Y'],
-          ['B', 'B', 'G', 'G', 'B', 'B'],
-          ['R', 'R', 'R', 'Y', 'Y', 'G'],
-          ['G', 'G', 'B', 'B', 'R', 'R'],
-          ['Y', 'Y', 'Y', 'G', 'G', 'G']
+          ["D", ".", ".", ".", ".", "C"],
+          ["G", "R", "R", "G", "G", "G"],
+          ["G", "R", "R", "R", "R", "G"],
+          ["R", "R", "R", "R", "G", "G"],
+          ["R", "R", "R", "R", "R", "R"],
+          ["R", "R", "R", "B", "B", "B"],
+          ["R", "R", "R", "G", "B", "R"],
+          ["R", "R", "R", "Y", "Y", "Y"]
         ]
       },
-      // Nivel 2: Desafío de columnas y compactación lateral
       {
         id: 2,
-        moves: 17,
-        targetPets: 2,
-        layout: [
-          ['D', '.', '.', '.', '.', 'D'],
-          ['B', 'B', 'R', 'R', 'G', 'G'],
-          ['Y', 'B', 'B', 'Y', 'G', 'Y'],
-          ['Y', 'Y', 'P', 'P', 'R', 'R'],
-          ['P', 'P', 'P', 'B', 'B', 'B'],
-          ['R', 'R', 'Y', 'Y', 'G', 'G'],
-          ['B', 'B', 'R', 'R', 'P', 'P'],
-          ['G', 'G', 'G', 'Y', 'Y', 'Y']
-        ]
-      },
-      // Nivel 3: 3 Mascotas con distribución vertical
-      {
-        id: 3,
-        moves: 20,
-        targetPets: 3,
-        layout: [
-          ['.', 'D', '.', 'C', '.', 'D'],
-          ['R', 'R', 'G', 'G', 'B', 'B'],
-          ['P', 'R', 'G', 'Y', 'B', 'P'],
-          ['P', 'P', 'Y', 'Y', 'R', 'R'],
-          ['G', 'G', 'B', 'B', 'R', 'Y'],
-          ['Y', 'Y', 'P', 'P', 'G', 'G'],
-          ['B', 'B', 'B', 'R', 'R', 'R'],
-          ['P', 'P', 'Y', 'Y', 'B', 'B']
-        ]
-      },
-      // Nivel 4: Introducción de obstáculo metálico (se sortea con columnas o boosters)
-      {
-        id: 4,
+        name: "Nivel 2 - Parque Soleado",
         moves: 19,
         targetPets: 2,
         layout: [
-          ['D', '.', '.', '.', '.', 'C'],
-          ['R', 'R', 'B', 'B', 'Y', 'Y'],
-          ['G', 'R', 'M', 'M', 'Y', 'G'],
-          ['G', 'G', 'B', 'B', 'P', 'P'],
-          ['P', 'P', 'R', 'R', 'P', 'B'],
-          ['Y', 'Y', 'Y', 'G', 'G', 'B'],
-          ['R', 'R', 'B', 'B', 'Y', 'Y'],
-          ['G', 'G', 'G', 'P', 'P', 'P']
+          [".", "C", ".", ".", "D", "."],
+          ["G", "R", "R", "R", "R", "R"],
+          ["G", "G", "G", "G", "R", "R"],
+          ["G", "G", "G", "G", "G", "G"],
+          ["G", "G", "R", "G", "G", "G"],
+          ["B", "B", "R", "G", "G", "G"],
+          ["B", "R", "R", "R", "R", "R"],
+          ["B", "B", "B", "B", "B", "R"]
         ]
       },
-      // Nivel 5: Rompecabezas avanzado
+      {
+        id: 3,
+        name: "Nivel 3 - Puente de Madera",
+        moves: 19,
+        targetPets: 2,
+        layout: [
+          [".", "D", ".", ".", ".", "C"],
+          ["G", "G", "B", "B", "B", "B"],
+          ["G", "G", "R", "R", "B", "B"],
+          ["G", "G", "G", "G", "B", "B"],
+          ["G", "G", "G", "G", "G", "G"],
+          ["G", "G", "G", "G", "G", "G"],
+          ["G", "G", "Y", "Y", "Y", "Y"],
+          ["G", "G", "G", "G", "G", "G"]
+        ]
+      },
+      {
+        id: 4,
+        name: "Nivel 4 - Valle Esmeralda",
+        moves: 19,
+        targetPets: 2,
+        layout: [
+          [".", ".", ".", "D", "C", "."],
+          ["R", "B", "G", "G", "G", "G"],
+          ["R", "R", "R", "R", "R", "R"],
+          ["R", "R", "R", "R", "R", "R"],
+          ["R", "R", "R", "R", "R", "R"],
+          ["R", "R", "R", "R", "R", "R"],
+          ["B", "B", "B", "B", "B", "B"],
+          ["R", "R", "R", "B", "B", "B"]
+        ]
+      },
       {
         id: 5,
-        moves: 22,
-        targetPets: 3,
+        name: "Nivel 5 - Jardín Florido",
+        moves: 18,
+        targetPets: 2,
         layout: [
-          ['D', '.', 'C', '.', 'D', '.'],
-          ['Y', 'Y', 'R', 'R', 'B', 'B'],
-          ['P', 'Y', 'R', 'G', 'B', 'G'],
-          ['P', 'P', 'G', 'G', 'R', 'R'],
-          ['M', 'B', 'B', 'Y', 'Y', 'M'],
-          ['B', 'B', 'P', 'P', 'Y', 'Y'],
-          ['R', 'R', 'G', 'G', 'P', 'P'],
-          ['G', 'G', 'B', 'B', 'R', 'R']
+          ["D", ".", ".", "C", ".", "."],
+          ["G", "G", "B", "R", "B", "Y"],
+          ["G", "G", "G", "G", "R", "R"],
+          ["G", "Y", "Y", "Y", "Y", "Y"],
+          ["G", "G", "Y", "Y", "Y", "Y"],
+          ["R", "R", "R", "R", "R", "Y"],
+          ["R", "R", "R", "R", "R", "R"],
+          ["G", "G", "Y", "Y", "Y", "Y"]
         ]
       }
     ];
+
+    // Registrar niveles de fallback en el manager
+    levelManager.registerLevels(PRESET_FALLBACK_LEVELS);
 
     /* =====================================================================
        VARIABLES DE ESTADO Y BOOSTERS
@@ -408,13 +470,16 @@
     let soundEnabled = true;
     let blockUniqueId = 0;
 
-    // Inventario de Boosters
+    // Inventario de Boosters y Medidor de Carga
     const boosters = {
-      rocket: 2,
-      bomb: 2,
-      hammer: 3
+      rocket: 2,       // Misil vertical (columna)
+      rowRocket: 2,    // Misil horizontal (fila)
+      bomb: 2,         // Bomba de área (3x3)
+      hammer: 3,       // Martillo de bloque/metal
+      colorBomb: 2     // Bomba de color (todos del mismo color)
     };
-    let activeBooster = null; // 'rocket' | 'bomb' | 'hammer' | null
+    let activeBooster = null; // 'rocket' | 'rowRocket' | 'bomb' | 'hammer' | 'colorBomb' | null
+    let rocketCharge = 0;    // Carga de energía de cohete (0% - 100%)
 
     // Pista del solver
     let cachedSolution = null;
@@ -439,16 +504,26 @@
     const levelsModal = document.getElementById('levels-modal');
     const btnCloseLevels = document.getElementById('btn-close-levels');
     const levelsGridButtons = document.getElementById('levels-grid-buttons');
+    const formJumpLevel = document.getElementById('form-jump-level');
+    const inputJumpLevel = document.getElementById('input-jump-level');
+    const levelRangeTabs = document.getElementById('level-range-tabs');
 
     const boosterRocketBtn = document.getElementById('booster-rocket');
+    const boosterRowRocketBtn = document.getElementById('booster-row-rocket');
     const boosterBombBtn = document.getElementById('booster-bomb');
     const boosterHammerBtn = document.getElementById('booster-hammer');
+    const boosterColorBombBtn = document.getElementById('booster-color-bomb');
     const countRocketEl = document.getElementById('count-rocket');
+    const countRowRocketEl = document.getElementById('count-row-rocket');
     const countBombEl = document.getElementById('count-bomb');
     const countHammerEl = document.getElementById('count-hammer');
+    const countColorBombEl = document.getElementById('count-color-bomb');
     const boosterBanner = document.getElementById('booster-banner');
     const boosterBannerText = document.getElementById('booster-banner-text');
     const btnCancelBooster = document.getElementById('btn-cancel-booster');
+    const rocketChargeBar = document.getElementById('rocket-charge-bar');
+    const rocketChargeText = document.getElementById('rocket-charge-text');
+    const btnRefillBoosters = document.getElementById('btn-refill-boosters');
 
     const fxCanvas = document.getElementById('fx-canvas');
     const fxCtx = fxCanvas.getContext('2d');
@@ -531,6 +606,57 @@
           gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
           osc.start(now);
           osc.stop(now + 0.15);
+        } else if (type === 'row_rocket') {
+          // Barrido láser horizontal
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(500, now);
+          osc.frequency.exponentialRampToValueAtTime(1600, now + 0.28);
+          gain.gain.setValueAtTime(0.32, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.32);
+          osc.start(now);
+          osc.stop(now + 0.32);
+        } else if (type === 'color_bomb') {
+          // Destello mágico
+          [659.25, 880, 1174.66, 1760].forEach((freq, idx) => {
+            const no = ctx.createOscillator();
+            const ng = ctx.createGain();
+            no.connect(ng);
+            ng.connect(ctx.destination);
+            no.type = 'sine';
+            no.frequency.value = freq;
+            ng.gain.setValueAtTime(0.2, now + idx * 0.05);
+            ng.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.05 + 0.22);
+            no.start(now + idx * 0.05);
+            no.stop(now + idx * 0.05 + 0.22);
+          });
+        } else if (type === 'charge_full') {
+          // Fanfarria de cohete cargado
+          [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+            const no = ctx.createOscillator();
+            const ng = ctx.createGain();
+            no.connect(ng);
+            ng.connect(ctx.destination);
+            no.type = 'triangle';
+            no.frequency.value = freq;
+            ng.gain.setValueAtTime(0.35, now + idx * 0.07);
+            ng.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.3);
+            no.start(now + idx * 0.07);
+            no.stop(now + idx * 0.07 + 0.3);
+          });
+        } else if (type === 'refill') {
+          // Recarga de bonus
+          [440, 554.37, 659.25, 880].forEach((freq, idx) => {
+            const no = ctx.createOscillator();
+            const ng = ctx.createGain();
+            no.connect(ng);
+            ng.connect(ctx.destination);
+            no.type = 'sine';
+            no.frequency.value = freq;
+            ng.gain.setValueAtTime(0.25, now + idx * 0.06);
+            ng.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.06 + 0.25);
+            no.start(now + idx * 0.06);
+            no.stop(now + idx * 0.06 + 0.25);
+          });
         } else if (type === 'win') {
           [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((freq, idx) => {
             const no = ctx.createOscillator();
@@ -888,11 +1014,19 @@
     /* =====================================================================
        CARGA Y RENDERIZADO DE NIVELES
        ===================================================================== */
-    function loadPresetLevel(levelId) {
+    async function loadPresetLevel(levelId) {
       isProceduralLevel = false;
       cachedSolution = null;
       currentLevelNumber = levelId;
-      const levelData = PRESET_LEVELS.find(l => l.id === levelId) || PRESET_LEVELS[0];
+      
+      // Intentar cargar a través de LevelManager (busca en data/levels/...)
+      let levelData = await levelManager.getLevel(levelId);
+      
+      // Si no existe, tomar fallback o el nivel 1
+      if (!levelData) {
+        levelData = PRESET_FALLBACK_LEVELS.find(l => l.id === levelId) || PRESET_FALLBACK_LEVELS[0];
+      }
+      
       loadLevelFromMatrix(levelData);
     }
 
@@ -984,12 +1118,21 @@
       targetEl.textContent = targetPetsCount;
 
       countRocketEl.textContent = `x${boosters.rocket}`;
+      countRowRocketEl.textContent = `x${boosters.rowRocket}`;
       countBombEl.textContent = `x${boosters.bomb}`;
       countHammerEl.textContent = `x${boosters.hammer}`;
+      countColorBombEl.textContent = `x${boosters.colorBomb}`;
 
       boosterRocketBtn.classList.toggle('opacity-50', boosters.rocket <= 0);
+      boosterRowRocketBtn.classList.toggle('opacity-50', boosters.rowRocket <= 0);
       boosterBombBtn.classList.toggle('opacity-50', boosters.bomb <= 0);
       boosterHammerBtn.classList.toggle('opacity-50', boosters.hammer <= 0);
+      boosterColorBombBtn.classList.toggle('opacity-50', boosters.colorBomb <= 0);
+
+      if (rocketChargeBar && rocketChargeText) {
+        rocketChargeBar.style.width = `${Math.min(100, rocketCharge)}%`;
+        rocketChargeText.textContent = `${Math.round(rocketCharge)}%`;
+      }
     }
 
     function renderBoard() {
@@ -1063,6 +1206,10 @@
       isProcessing = true;
       movesLeft--;
       score += group.length * 15 * (group.length > 4 ? 2 : 1);
+      
+      // Cargar medidor de Cohete con cada destrucción de bloques
+      addRocketCharge(group.length * 4);
+      
       updateStatsUI();
       playSound('pop');
 
@@ -1124,6 +1271,20 @@
     /* =====================================================================
        LÓGICA DE PODERES / BOOSTERS
        ===================================================================== */
+    function addRocketCharge(amount) {
+      rocketCharge += amount;
+      if (rocketCharge >= 100) {
+        rocketCharge = 0;
+        boosters.rocket++;
+        playSound('charge_full');
+        boosterBanner.classList.remove('hidden');
+        boosterBannerText.textContent = '⚡ ¡MISIL CARGADO AL 100%! +1 Cohete Vertical obtenido';
+        setTimeout(() => {
+          if (!activeBooster) boosterBanner.classList.add('hidden');
+        }, 3000);
+      }
+    }
+
     function setBooster(type) {
       if (boosters[type] <= 0) return;
 
@@ -1134,20 +1295,26 @@
 
       activeBooster = type;
       boosterRocketBtn.classList.toggle('active-booster', type === 'rocket');
+      boosterRowRocketBtn.classList.toggle('active-booster', type === 'rowRocket');
       boosterBombBtn.classList.toggle('active-booster', type === 'bomb');
       boosterHammerBtn.classList.toggle('active-booster', type === 'hammer');
+      boosterColorBombBtn.classList.toggle('active-booster', type === 'colorBomb');
 
       boosterBanner.classList.remove('hidden');
-      if (type === 'rocket') boosterBannerText.textContent = '🚀 Cohete Activo: Toca una columna para arrasarla';
-      else if (type === 'bomb') boosterBannerText.textContent = '💣 Bomba Activa: Toca una zona para estallar 3x3';
-      else if (type === 'hammer') boosterBannerText.textContent = '🔨 Martillo Activo: Toca un bloque para destruirlo';
+      if (type === 'rocket') boosterBannerText.textContent = '🚀 Misil Columna: Toca una columna para arrasarla hacia arriba';
+      else if (type === 'rowRocket') boosterBannerText.textContent = '↔️ Láser de Fila: Toca una fila para arrasarla horizontalmente';
+      else if (type === 'bomb') boosterBannerText.textContent = '💣 Bomba 3x3: Toca una zona para estallar en área';
+      else if (type === 'hammer') boosterBannerText.textContent = '🔨 Martillo: Toca cualquier bloque o metal para romperlo';
+      else if (type === 'colorBomb') boosterBannerText.textContent = '🎨 Bomba Color: Toca un bloque para eliminar todos los de su color';
     }
 
     function cancelActiveBooster() {
       activeBooster = null;
       boosterRocketBtn.classList.remove('active-booster');
+      boosterRowRocketBtn.classList.remove('active-booster');
       boosterBombBtn.classList.remove('active-booster');
       boosterHammerBtn.classList.remove('active-booster');
+      boosterColorBombBtn.classList.remove('active-booster');
       boosterBanner.classList.add('hidden');
     }
 
@@ -1162,17 +1329,32 @@
 
       if (bType === 'rocket') {
         playSound('rocket');
-        // Elimina toda la columna targetC (excepto mascotas, que caen)
-        for (let r = 0; r < ROWS; r++) {
+        // Elimina toda la columna vertical targetC (excepto mascotas, que caen a salvo)
+        for (let r = ROWS - 1; r >= 0; r--) {
           const item = gridState[r][targetC];
           if (item && item.type === 'block') {
             const el = document.getElementById(`cell-${item.id}`);
             if (el) {
               const rect = el.getBoundingClientRect();
-              spawnParticles(rect.left - rectCanvas.left + rect.width / 2, rect.top - rectCanvas.top + rect.height / 2, '#ff4757', 12);
+              spawnParticles(rect.left - rectCanvas.left + rect.width / 2, rect.top - rectCanvas.top + rect.height / 2, '#ff4757', 14);
               el.classList.add('animate-pop');
             }
             gridState[r][targetC] = null;
+          }
+        }
+      } else if (bType === 'rowRocket') {
+        playSound('row_rocket');
+        // Elimina toda la fila horizontal targetR (excepto mascotas, que caen)
+        for (let c = 0; c < COLS; c++) {
+          const item = gridState[targetR][c];
+          if (item && item.type === 'block') {
+            const el = document.getElementById(`cell-${item.id}`);
+            if (el) {
+              const rect = el.getBoundingClientRect();
+              spawnParticles(rect.left - rectCanvas.left + rect.width / 2, rect.top - rectCanvas.top + rect.height / 2, '#00d2d3', 14);
+              el.classList.add('animate-pop');
+            }
+            gridState[targetR][c] = null;
           }
         }
       } else if (bType === 'bomb') {
@@ -1185,7 +1367,7 @@
               const el = document.getElementById(`cell-${item.id}`);
               if (el) {
                 const rect = el.getBoundingClientRect();
-                spawnParticles(rect.left - rectCanvas.left + rect.width / 2, rect.top - rectCanvas.top + rect.height / 2, '#ffa502', 14);
+                spawnParticles(rect.left - rectCanvas.left + rect.width / 2, rect.top - rectCanvas.top + rect.height / 2, '#ffa502', 15);
                 el.classList.add('animate-pop');
               }
               gridState[r][c] = null;
@@ -1200,10 +1382,31 @@
           const el = document.getElementById(`cell-${item.id}`);
           if (el) {
             const rect = el.getBoundingClientRect();
-            spawnParticles(rect.left - rectCanvas.left + rect.width / 2, rect.top - rectCanvas.top + rect.height / 2, '#2ed573', 15);
+            spawnParticles(rect.left - rectCanvas.left + rect.width / 2, rect.top - rectCanvas.top + rect.height / 2, '#2ed573', 16);
             el.classList.add('animate-pop');
           }
           gridState[targetR][targetC] = null;
+        }
+      } else if (bType === 'colorBomb') {
+        playSound('color_bomb');
+        // Destruye todos los bloques del color tocado en todo el tablero
+        const clickedItem = gridState[targetR][targetC];
+        const targetColor = (clickedItem && clickedItem.type === 'block') ? clickedItem.color : 'red';
+        const colorHexMap = { red: '#ff4757', blue: '#54a0ff', green: '#1dd1a1', yellow: '#feca57', purple: '#9b59b6', metal: '#95a5a6' };
+
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const item = gridState[r][c];
+            if (item && item.type === 'block' && item.color === targetColor) {
+              const el = document.getElementById(`cell-${item.id}`);
+              if (el) {
+                const rect = el.getBoundingClientRect();
+                spawnParticles(rect.left - rectCanvas.left + rect.width / 2, rect.top - rectCanvas.top + rect.height / 2, colorHexMap[targetColor] || '#ff9ff3', 12);
+                el.classList.add('animate-pop');
+              }
+              gridState[r][c] = null;
+            }
+          }
         }
       }
 
@@ -1311,8 +1514,7 @@
             if (isProceduralLevel) {
               generateGuaranteedLevel();
             } else {
-              const nextId = (currentLevelNumber % PRESET_LEVELS.length) + 1;
-              loadPresetLevel(nextId);
+              loadPresetLevel(currentLevelNumber + 1);
             }
           },
           'Repetir Mismo Nivel',
@@ -1400,8 +1602,7 @@
       if (isProceduralLevel) {
         generateGuaranteedLevel();
       } else {
-        const nextId = (currentLevelNumber % PRESET_LEVELS.length) + 1;
-        loadPresetLevel(nextId);
+        loadPresetLevel(currentLevelNumber + 1);
       }
     });
 
@@ -1415,25 +1616,108 @@
 
     // Boosters clicks
     boosterRocketBtn.addEventListener('click', () => setBooster('rocket'));
+    boosterRowRocketBtn.addEventListener('click', () => setBooster('rowRocket'));
     boosterBombBtn.addEventListener('click', () => setBooster('bomb'));
     boosterHammerBtn.addEventListener('click', () => setBooster('hammer'));
+    boosterColorBombBtn.addEventListener('click', () => setBooster('colorBomb'));
     btnCancelBooster.addEventListener('click', cancelActiveBooster);
 
-    // Modal de Niveles
-    btnOpenLevels.addEventListener('click', () => {
+    // Botón Recargar / +Ayudas
+    if (btnRefillBoosters) {
+      btnRefillBoosters.addEventListener('click', () => {
+        boosters.rocket = Math.max(boosters.rocket, 3);
+        boosters.rowRocket = Math.max(boosters.rowRocket, 3);
+        boosters.bomb = Math.max(boosters.bomb, 3);
+        boosters.hammer = Math.max(boosters.hammer, 3);
+        boosters.colorBomb = Math.max(boosters.colorBomb, 3);
+        playSound('refill');
+        updateStatsUI();
+
+        boosterBanner.classList.remove('hidden');
+        boosterBannerText.textContent = '🎁 ¡Todas las ayudas recargadas al máximo!';
+        setTimeout(() => {
+          if (!activeBooster) boosterBanner.classList.add('hidden');
+        }, 2500);
+      });
+    }
+
+    // Modal de Niveles: Renderizar botones por rango
+    let activeRangeStart = 1;
+    let activeRangeEnd = 20;
+
+    function renderModalLevelButtons(start = 1, end = 20) {
+      activeRangeStart = start;
+      activeRangeEnd = end;
       levelsGridButtons.innerHTML = '';
-      PRESET_LEVELS.forEach(lvl => {
+
+      const cachedIds = levelManager.getCachedLevelIds();
+      // Si no están en caché aún, mostrar los números del rango
+      const idsToShow = cachedIds.length > 0 
+        ? cachedIds.filter(id => id >= start && id <= end)
+        : Array.from({ length: end - start + 1 }, (_, i) => start + i);
+
+      idsToShow.forEach(lvlId => {
         const btn = document.createElement('button');
-        btn.className = `py-2.5 rounded-xl font-bold game-font text-base shadow border transition active:scale-95 ${lvl.id === currentLevelNumber && !isProceduralLevel ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300'}`;
-        btn.textContent = lvl.id;
+        const isCurrent = lvlId === currentLevelNumber && !isProceduralLevel;
+        btn.className = `py-2 rounded-xl font-bold game-font text-sm shadow border transition active:scale-95 ${isCurrent ? 'bg-emerald-500 text-white border-emerald-600 ring-2 ring-emerald-300' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300'}`;
+        btn.textContent = lvlId;
         btn.addEventListener('click', () => {
           levelsModal.classList.add('hidden');
-          loadPresetLevel(lvl.id);
+          loadPresetLevel(lvlId);
         });
         levelsGridButtons.appendChild(btn);
       });
+
+      // Actualizar estilo visual de las pestañas
+      if (levelRangeTabs) {
+        levelRangeTabs.querySelectorAll('.range-tab').forEach(tab => {
+          const r = tab.dataset.range;
+          if (r === `${start}-${end}`) {
+            tab.className = 'range-tab px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-500 text-white shadow-sm';
+          } else {
+            tab.className = 'range-tab px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200';
+          }
+        });
+      }
+    }
+
+    if (levelRangeTabs) {
+      levelRangeTabs.addEventListener('click', (e) => {
+        const tab = e.target.closest('.range-tab');
+        if (!tab) return;
+        const [s, en] = tab.dataset.range.split('-').map(Number);
+        renderModalLevelButtons(s, en);
+      });
+    }
+
+    btnOpenLevels.addEventListener('click', async () => {
+      // Asegurarse de tener el paquete de niveles en memoria
+      await levelManager.loadChunkForLevel(currentLevelNumber || 1);
+      
+      // Auto-seleccionar la pestaña que contiene el nivel actual
+      const cur = currentLevelNumber || 1;
+      let s = 1, e = 20;
+      if (cur > 80) { s = 81; e = 100; }
+      else if (cur > 60) { s = 61; e = 80; }
+      else if (cur > 40) { s = 41; e = 60; }
+      else if (cur > 20) { s = 21; e = 40; }
+
+      renderModalLevelButtons(s, e);
       levelsModal.classList.remove('hidden');
     });
+
+    // Saltar a cualquier nivel mediante el input (hasta 999999)
+    if (formJumpLevel) {
+      formJumpLevel.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const targetLvl = parseInt(inputJumpLevel.value, 10);
+        if (targetLvl >= 1 && targetLvl <= 999999) {
+          levelsModal.classList.add('hidden');
+          inputJumpLevel.value = '';
+          loadPresetLevel(targetLvl);
+        }
+      });
+    }
 
     btnCloseLevels.addEventListener('click', () => {
       levelsModal.classList.add('hidden');
@@ -1470,8 +1754,9 @@
     }
 
     /* INICIALIZACIÓN */
-    window.onload = function () {
-      loadPresetLevel(1);
+    window.onload = async function () {
+      await levelManager.loadChunkForLevel(1);
+      await loadPresetLevel(1);
       resizeCanvas();
       updateParticles();
     };
