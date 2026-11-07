@@ -2,24 +2,38 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <meta name="theme-color" content="#0284c7">
   <title>Pet Rescue Saga - Solver & Boosters Edition</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@600;700;800&display=swap');
+
+    :root {
+      --cell-size: 44px;
+      color-scheme: light;
+    }
 
     * {
       user-select: none;
       -webkit-user-select: none;
       touch-action: manipulation;
+      box-sizing: border-box;
     }
 
-    body {
+    html, body {
       font-family: 'Quicksand', sans-serif;
-      background: linear-gradient(180deg, #38bdf8 0%, #6ee7b7 55%, #22c55e 100%);
-      min-height: 100vh;
-      overflow-x: hidden;
+      background: linear-gradient(180deg, #0284c7 0%, #059669 55%, #15803d 100%);
+      height: 100%;
+      height: 100dvh;
+      max-height: 100dvh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      color-scheme: light !important;
     }
 
     .game-font {
@@ -29,51 +43,127 @@
     /* Estilos 3D de los bloques */
     .block-base {
       transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
-      box-shadow: inset 0 3px 5px rgba(255, 255, 255, 0.45), inset 0 -3px 5px rgba(0, 0, 0, 0.25), 0 3px 6px rgba(0,0,0,0.18);
       border-radius: 12px;
       position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .block-base:active {
       transform: scale(0.92);
     }
 
-    /* Colores estilo Pet Rescue */
+    /* =====================================================================
+       COLORES ULTRA-CONTRASTADOS Y VIBRANTES (RESISTENTES A MODO OSCURO)
+       ===================================================================== */
+    /* ROJO: Carmín escarlata brillante (cálido, borde rosa vivo) */
     .block-red {
-      background: linear-gradient(135deg, #ff6b6b 0%, #ee5253 60%, #c0392b 100%);
-      border: 2px solid #ff8787;
+      background: linear-gradient(135deg, #ff2a55 0%, #e11d48 55%, #9f1239 100%);
+      border: 2.5px solid #fecdd3;
+      box-shadow: inset 0 3px 5px rgba(255, 255, 255, 0.6), inset 0 -3px 5px rgba(0, 0, 0, 0.35), 0 3px 6px rgba(225, 29, 72, 0.45);
     }
-    .block-blue {
-      background: linear-gradient(135deg, #54a0ff 0%, #2e86de 60%, #1a5276 100%);
-      border: 2px solid #74b9ff;
-    }
-    .block-green {
-      background: linear-gradient(135deg, #1dd1a1 0%, #10ac84 60%, #0e7054 100%);
-      border: 2px solid #55efc4;
-    }
-    .block-yellow {
-      background: linear-gradient(135deg, #feca57 0%, #ff9f43 60%, #e67e22 100%);
-      border: 2px solid #ffeaa7;
-    }
+
+    /* MORADO: Ultravioleta intenso / amatista (frío, azulado, borde lavanda) */
     .block-purple {
-      background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 60%, #5e2777 100%);
-      border: 2px solid #be2edd;
+      background: linear-gradient(135deg, #a855f7 0%, #7c3aed 55%, #4c1d95 100%);
+      border: 2.5px solid #ede9fe;
+      box-shadow: inset 0 3px 5px rgba(255, 255, 255, 0.6), inset 0 -3px 5px rgba(0, 0, 0, 0.35), 0 3px 6px rgba(124, 58, 237, 0.45);
     }
+
+    /* AZUL: Océano / Cian eléctrico */
+    .block-blue {
+      background: linear-gradient(135deg, #38bdf8 0%, #0284c7 55%, #0369a1 100%);
+      border: 2.5px solid #e0f2fe;
+      box-shadow: inset 0 3px 5px rgba(255, 255, 255, 0.6), inset 0 -3px 5px rgba(0, 0, 0, 0.35), 0 3px 6px rgba(2, 132, 199, 0.45);
+    }
+
+    /* VERDE: Menta neón / Esmeralda vivo */
+    .block-green {
+      background: linear-gradient(135deg, #34d399 0%, #10b981 55%, #047857 100%);
+      border: 2.5px solid #d1fae5;
+      box-shadow: inset 0 3px 5px rgba(255, 255, 255, 0.6), inset 0 -3px 5px rgba(0, 0, 0, 0.35), 0 3px 6px rgba(16, 185, 129, 0.45);
+    }
+
+    /* AMARILLO: Oro solar / Ámbar brillante */
+    .block-yellow {
+      background: linear-gradient(135deg, #ffea47 0%, #f59e0b 55%, #b45309 100%);
+      border: 2.5px solid #fef9c3;
+      box-shadow: inset 0 3px 5px rgba(255, 255, 255, 0.7), inset 0 -3px 5px rgba(0, 0, 0, 0.35), 0 3px 6px rgba(245, 158, 11, 0.45);
+    }
+
+    /* METAL: Acero titanio 3D con remaches */
     .block-metal {
-      background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 60%, #34495e 100%);
-      border: 2px solid #bdc3c7;
+      background: linear-gradient(135deg, #cbd5e1 0%, #64748b 55%, #334155 100%);
+      border: 2.5px solid #f1f5f9;
+      box-shadow: inset 0 3px 5px rgba(255, 255, 255, 0.5), inset 0 -3px 5px rgba(0, 0, 0, 0.5), 0 3px 6px rgba(0,0,0,0.4);
     }
+
+    /* BOMBA DE TABLERO: Bomba táctica negra con mecha dorada */
+    .block-bomb {
+      background: linear-gradient(135deg, #374151 0%, #1f2937 60%, #111827 100%);
+      border: 2.5px solid #f59e0b;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.7), inset 0 2px 4px rgba(255,255,255,0.4);
+    }
+
+    /* Glifo identificador sutil para accesibilidad total */
+    .glyph-red::before { content: '♦'; color: rgba(255,255,255,0.35); font-size: 13px; font-weight: 900; }
+    .glyph-purple::before { content: '★'; color: rgba(255,255,255,0.35); font-size: 13px; font-weight: 900; }
+    .glyph-blue::before { content: '▲'; color: rgba(255,255,255,0.35); font-size: 11px; font-weight: 900; }
+    .glyph-green::before { content: '●'; color: rgba(255,255,255,0.35); font-size: 12px; font-weight: 900; }
+    .glyph-yellow::before { content: '✦'; color: rgba(255,255,255,0.45); font-size: 14px; font-weight: 900; }
 
     /* Brillo superior en bloques */
     .block-highlight {
       position: absolute;
-      top: 3px;
+      top: 2px;
       left: 3px;
       right: 3px;
       height: 35%;
-      background: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 100%);
       border-radius: 8px 8px 12px 12px;
       pointer-events: none;
+    }
+
+    /* =====================================================================
+       JAULA DE ANIMALES (ESTILO PET RESCUE SAGA ORIGINAL)
+       ===================================================================== */
+    .pet-cage {
+      position: absolute;
+      inset: 0;
+      border-radius: 12px;
+      border: 3px solid #64748b;
+      background: repeating-linear-gradient(
+        90deg,
+        rgba(100, 116, 139, 0.85) 0px,
+        rgba(100, 116, 139, 0.85) 4px,
+        transparent 4px,
+        transparent 11px
+      );
+      box-shadow: inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -3px 6px rgba(0,0,0,0.6), 0 3px 6px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    .cage-crossbar {
+      position: absolute;
+      top: 45%;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: #475569;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    }
+
+    .cage-padlock {
+      position: absolute;
+      bottom: 1px;
+      right: 2px;
+      font-size: 11px;
+      filter: drop-shadow(0 1px 3px rgba(0,0,0,0.9));
     }
 
     /* Animación Mascota */
@@ -83,7 +173,7 @@
 
     @keyframes gentle-bounce {
       0%, 100% { transform: translateY(0) scale(1); }
-      50% { transform: translateY(-4px) scale(1.05); }
+      50% { transform: translateY(-3px) scale(1.04); }
     }
 
     /* Pulso para la pista de solución */
@@ -133,82 +223,85 @@
       box-shadow: 0 0 14px #fbbf24;
       transform: scale(1.05);
     }
+
+    /* Celdas con tamaño dinámico calculado por JS */
+    .game-cell {
+      width: var(--cell-size, 44px);
+      height: var(--cell-size, 44px);
+    }
   </style>
   <!-- Scripts -->
   <script src="js/levelManager.js"></script>
 </head>
-<body class="flex flex-col items-center justify-between p-2 sm:p-4 min-h-screen">
+<body class="overflow-hidden m-0 p-0 w-full h-[100dvh]">
+  <div id="game-app" class="w-full max-w-md mx-auto h-full flex flex-col justify-between p-1.5 sm:p-2.5 overflow-hidden">
 
-  <!-- ENCABEZADO Y CONTROLES SUPERIORES -->
-  <header class="w-full max-w-md mx-auto flex flex-col gap-2">
+  <!-- ENCABEZADO Y CONTROLES SUPERIORES (Compacto para móviles) -->
+  <header class="w-full max-w-md mx-auto flex flex-col gap-1.5 flex-shrink-0">
     <!-- Fila 1: Logo, Nivel y Botones de Menú -->
-    <div class="flex items-center justify-between bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-lg border-2 border-white">
-      <div class="flex items-center gap-2 cursor-pointer" id="btn-open-levels">
-        <span class="text-3xl">🐾</span>
+    <div class="flex items-center justify-between bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-2xl shadow-md border-2 border-white">
+      <div class="flex items-center gap-2 cursor-pointer" id="btn-open-levels" title="Ver lista de niveles (1 al 200)">
+        <span class="text-2xl sm:text-3xl">🐾</span>
         <div>
-          <h1 class="game-font text-lg text-emerald-800 tracking-wide leading-none flex items-center gap-1.5">
-            Pet Rescue <i class="fa-solid fa-chevron-down text-xs text-emerald-600"></i>
+          <h1 class="game-font text-base sm:text-lg text-emerald-800 tracking-wide leading-none flex items-center gap-1">
+            Pet Rescue <i class="fa-solid fa-chevron-down text-[10px] text-emerald-600"></i>
           </h1>
-          <span id="level-indicator" class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Nivel 1</span>
+          <span id="level-indicator" class="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Nivel 1</span>
         </div>
       </div>
       
-      <!-- Herramientas superiores -->
-      <div class="flex gap-1.5 items-center">
-        <!-- Botón Pista (Solver) -->
-        <button id="btn-hint" title="Mostrar sugerencia del Solver" class="w-9 h-9 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-700 flex items-center justify-center transition active:scale-95 shadow-sm border border-amber-300">
-          <i class="fa-solid fa-lightbulb text-sm"></i>
+      <!-- Herramientas superiores compactas -->
+      <div class="flex gap-1 items-center">
+        <!-- Pista -->
+        <button id="btn-hint" title="Sugerencia del Solver" class="w-8 h-8 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-700 flex items-center justify-center transition active:scale-95 shadow-sm border border-amber-300">
+          <i class="fa-solid fa-lightbulb text-xs"></i>
+        </button>
+        <!-- Generador Aleatorio -->
+        <button id="btn-generate-guaranteed" title="Generar nivel aleatorio garantizado" class="w-8 h-8 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-700 flex items-center justify-center transition active:scale-95 shadow-sm border border-purple-300">
+          <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
         </button>
         <!-- Sonido -->
-        <button id="btn-sound" title="Alternar Sonido" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition active:scale-95 shadow-sm border border-slate-300">
-          <i id="sound-icon" class="fa-solid fa-volume-high text-sm"></i>
+        <button id="btn-sound" title="Alternar Sonido" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition active:scale-95 shadow-sm border border-slate-300">
+          <i id="sound-icon" class="fa-solid fa-volume-high text-xs"></i>
         </button>
         <!-- Reiniciar -->
-        <button id="btn-restart" title="Reiniciar este nivel con la misma configuración" class="w-9 h-9 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 flex items-center justify-center transition active:scale-95 shadow-sm border border-rose-300">
-          <i class="fa-solid fa-rotate-right text-sm"></i>
+        <button id="btn-restart" title="Reiniciar este nivel" class="w-8 h-8 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 flex items-center justify-center transition active:scale-95 shadow-sm border border-rose-300">
+          <i class="fa-solid fa-rotate-right text-xs"></i>
         </button>
         <!-- Avanzar Nivel -->
-        <button id="btn-next-level" title="Avanzar de Nivel" class="w-9 h-9 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-700 flex items-center justify-center transition active:scale-95 shadow-sm border border-emerald-300">
-          <i class="fa-solid fa-forward-step text-sm"></i>
+        <button id="btn-next-level" title="Avanzar de Nivel" class="w-8 h-8 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-700 flex items-center justify-center transition active:scale-95 shadow-sm border border-emerald-300">
+          <i class="fa-solid fa-forward-step text-xs"></i>
         </button>
       </div>
     </div>
 
-    <!-- Barra de Generador Procedural Garantizado -->
-    <div class="flex gap-2">
-      <button id="btn-generate-guaranteed" class="flex-1 py-1.5 px-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl shadow-md border border-purple-300/40 text-xs font-bold flex items-center justify-center gap-1.5 active:scale-98 transition">
-        <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
-        <span>🎲 Generar Nivel (Con Solución Garantizada)</span>
-      </button>
-    </div>
-
     <!-- Fila 2: Estadísticas del Juego -->
-    <div class="grid grid-cols-3 gap-2">
+    <div class="grid grid-cols-3 gap-1.5">
       <!-- Mascotas -->
-      <div class="bg-gradient-to-b from-amber-400 to-amber-500 p-2 rounded-2xl text-center shadow-md border-2 border-amber-200 text-white">
-        <div class="text-[10px] uppercase font-bold tracking-wider opacity-90">Mascotas</div>
-        <div class="game-font text-lg flex items-center justify-center gap-1">
+      <div class="bg-gradient-to-b from-amber-400 to-amber-500 py-1 px-1.5 sm:py-1.5 sm:px-2 rounded-2xl text-center shadow-md border-2 border-amber-200 text-white">
+        <div class="text-[9px] uppercase font-bold tracking-wider opacity-90">Mascotas</div>
+        <div class="game-font text-base sm:text-lg flex items-center justify-center gap-1 leading-none">
           <span id="rescued-pets">0</span><span class="text-xs">/</span><span id="target-pets">2</span>
         </div>
       </div>
       <!-- Movimientos -->
-      <div class="bg-gradient-to-b from-indigo-500 to-blue-600 p-2 rounded-2xl text-center shadow-md border-2 border-indigo-200 text-white">
-        <div class="text-[10px] uppercase font-bold tracking-wider opacity-90">Movimientos</div>
-        <div id="moves-left" class="game-font text-2xl leading-none">18</div>
+      <div class="bg-gradient-to-b from-indigo-500 to-blue-600 py-1 px-1.5 sm:py-1.5 sm:px-2 rounded-2xl text-center shadow-md border-2 border-indigo-200 text-white">
+        <div class="text-[9px] uppercase font-bold tracking-wider opacity-90">Movimientos</div>
+        <div id="moves-left" class="game-font text-xl sm:text-2xl leading-none">18</div>
       </div>
       <!-- Puntuación -->
-      <div class="bg-gradient-to-b from-emerald-500 to-teal-600 p-2 rounded-2xl text-center shadow-md border-2 border-emerald-200 text-white">
-        <div class="text-[10px] uppercase font-bold tracking-wider opacity-90">Puntos</div>
-        <div id="score" class="game-font text-lg">0</div>
+      <div class="bg-gradient-to-b from-emerald-500 to-teal-600 py-1 px-1.5 sm:py-1.5 sm:px-2 rounded-2xl text-center shadow-md border-2 border-emerald-200 text-white">
+        <div class="text-[9px] uppercase font-bold tracking-wider opacity-90">Puntos</div>
+        <div id="score" class="game-font text-base sm:text-lg leading-none">0</div>
       </div>
     </div>
   </header>
 
-  <!-- CONTENEDOR PRINCIPAL: TABLERO DE JUEGO -->
-  <main class="w-full max-w-md mx-auto my-auto flex flex-col items-center justify-center relative px-1">
+  <!-- CONTENEDOR PRINCIPAL: TABLERO DE JUEGO (Se auto-ajusta al alto disponible) -->
+  <main class="w-full max-w-md mx-auto flex-1 flex flex-col items-center justify-center relative px-1 min-h-0">
     
     <!-- Banner de booster activo -->
-    <div id="booster-banner" class="hidden w-full bg-amber-400/95 border-2 border-amber-500 text-amber-950 font-bold text-xs py-1 px-3 rounded-xl mb-1 text-center shadow-md flex items-center justify-between animate-pulse">
+    <div id="booster-banner" class="hidden w-full bg-amber-400/95 border-2 border-amber-500 text-amber-950 font-bold text-xs py-1 px-3 rounded-xl mb-1 text-center shadow-md flex items-center justify-between animate-pulse z-40">
       <span id="booster-banner-text">🚀 Modo Cohete: Toca una columna</span>
       <button id="btn-cancel-booster" class="bg-amber-600 text-white text-[10px] uppercase px-2 py-0.5 rounded-lg">Cancelar</button>
     </div>
@@ -219,25 +312,25 @@
       <span id="solver-badge-text">Verificando solución con IA...</span>
     </div>
 
-    <div id="board-container" class="relative bg-sky-950/25 p-2 sm:p-3 rounded-3xl backdrop-blur-sm shadow-2xl border-4 border-white/70 w-full overflow-hidden">
+    <div id="board-container" class="relative bg-sky-950/40 p-2 rounded-2xl backdrop-blur-md shadow-2xl border-2 sm:border-4 border-white/80 w-auto overflow-hidden flex flex-col items-center">
       <!-- Canvas de partículas y efectos -->
       <canvas id="fx-canvas" class="absolute inset-0 pointer-events-none z-30 w-full h-full"></canvas>
 
       <!-- Grid de Bloques -->
-      <div id="grid" class="grid gap-1.5 sm:gap-2 relative z-10 mx-auto"></div>
+      <div id="grid" class="grid gap-1 sm:gap-1.5 relative z-10 mx-auto"></div>
 
       <!-- Césped de Meta donde se salvan los animales -->
-      <div class="grass-ground h-7 sm:h-8 mt-2 rounded-xl flex items-center justify-center text-white text-[11px] sm:text-xs font-bold tracking-wider shadow-inner">
+      <div class="grass-ground w-full h-6 sm:h-7 mt-1.5 rounded-xl flex items-center justify-center text-white text-[10px] sm:text-xs font-bold tracking-wider shadow-inner">
         <span>🌱 ZONA DE RESCATE 🌱</span>
       </div>
     </div>
   </main>
 
   <!-- BARRA DE PODERES / BOOSTERS -->
-  <section class="w-full max-w-md mx-auto flex flex-col gap-1.5 mt-2">
+  <section class="w-full max-w-md mx-auto flex flex-col gap-1 flex-shrink-0 pb-1">
     
     <!-- MEDIDOR DE CARGA DE MISIL (Estilo Pet Rescue Saga) -->
-    <div class="flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-2xl shadow-md border-2 border-white">
+    <div class="flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1 rounded-2xl shadow-md border-2 border-white">
       <span class="text-xs font-bold text-slate-700 flex items-center gap-1">
         🚀 Carga:
       </span>
@@ -251,7 +344,7 @@
     </div>
 
     <!-- BOTONES DE BOOSTERS -->
-    <div class="grid grid-cols-5 gap-1.5 bg-white/90 backdrop-blur-md p-2 rounded-2xl shadow-lg border-2 border-white">
+    <div class="grid grid-cols-5 gap-1.5 bg-white/90 backdrop-blur-md p-1.5 rounded-2xl shadow-lg border-2 border-white">
       
       <!-- Booster 1: Cohete Vertical (Limpia Columna) -->
       <button id="booster-rocket" class="booster-btn flex flex-col items-center justify-center p-1 rounded-xl bg-gradient-to-b from-rose-50 to-rose-100 border border-rose-300 text-rose-800 shadow-sm" title="Misil de Columna: Destruye toda la columna">
@@ -267,8 +360,8 @@
         <span class="text-[9px] text-cyan-700 font-extrabold" id="count-row-rocket">x2</span>
       </button>
 
-      <!-- Booster 3: Bomba (Área 3x3) -->
-      <button id="booster-bomb" class="booster-btn flex flex-col items-center justify-center p-1 rounded-xl bg-gradient-to-b from-amber-50 to-amber-100 border border-amber-300 text-amber-900 shadow-sm" title="Bomba: Explota un área de 3x3 bloques">
+      <!-- Booster 3: Bomba (Área 3x3 y rompe Jaulas) -->
+      <button id="booster-bomb" class="booster-btn flex flex-col items-center justify-center p-1 rounded-xl bg-gradient-to-b from-amber-50 to-amber-100 border border-amber-300 text-amber-900 shadow-sm" title="Bomba: Explota 3x3 y LIBERA animales enjaulados">
         <span class="text-lg">💣</span>
         <div class="text-[9px] font-bold uppercase leading-tight mt-0.5">Bomba</div>
         <span class="text-[9px] text-amber-700 font-extrabold" id="count-bomb">x2</span>
@@ -291,25 +384,55 @@
     </div>
   </section>
 
-  <!-- MODAL SELECTOR DE NIVELES PREDEFINIDOS -->
-  <div id="levels-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl p-5 max-w-sm sm:max-w-md w-full text-center shadow-2xl border-4 border-emerald-400">
+  </div><!-- /#game-app -->
+
+  <!-- MODAL SELECTOR DE NIVELES PREDEFINIDOS (1 al 200) -->
+  <div id="levels-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white rounded-3xl p-4 sm:p-5 max-w-sm sm:max-w-md w-full text-center shadow-2xl border-4 border-emerald-400">
       <div class="flex justify-between items-center mb-2">
         <div class="flex items-center gap-2">
           <span class="text-xl">🗺️</span>
-          <h3 class="game-font text-xl text-emerald-800">Seleccionar Nivel</h3>
+          <h3 class="game-font text-lg sm:text-xl text-emerald-800">Seleccionar Nivel (1 - 200)</h3>
         </div>
         <button id="btn-close-levels" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200">✕</button>
       </div>
 
       <!-- Barra de pestañas por rangos de niveles -->
-      <div class="flex items-center justify-center gap-1 mb-3 overflow-x-auto py-1" id="level-range-tabs">
-        <button data-range="1-20" class="range-tab px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-500 text-white shadow-sm">1-20</button>
-        <button data-range="21-40" class="range-tab px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">21-40</button>
-        <button data-range="41-60" class="range-tab px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">41-60</button>
-        <button data-range="61-80" class="range-tab px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">61-80</button>
-        <button data-range="81-100" class="range-tab px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">81-100</button>
+      <div class="flex items-center gap-1.5 mb-2.5 overflow-x-auto py-1 px-0.5" id="level-range-tabs">
+        <button data-range="1-20" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-500 text-white shadow-sm">1-20</button>
+        <button data-range="21-40" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">21-40</button>
+        <button data-range="41-60" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">41-60</button>
+        <button data-range="61-80" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">61-80</button>
+        <button data-range="81-100" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">81-100</button>
+        <button data-range="101-120" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200">101-120 🔒</button>
+        <button data-range="121-140" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200">121-140 🔒</button>
+        <button data-range="141-160" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200">141-160 🔒</button>
+        <button data-range="161-180" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200">161-180 🔒</button>
+        <button data-range="181-200" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200">181-200 🔒</button>
       </div>
+      
+      <!-- Entrada rápida para saltar a cualquier nivel (hasta 6 cifras: 1 a 999999) -->
+      <form id="form-jump-level" class="flex gap-2 mb-2.5">
+        <input type="number" id="input-jump-level" min="1" max="999999" placeholder="Nivel directo (1 - 999999)"
+          class="flex-1 px-3 py-1.5 rounded-xl border border-slate-300 text-sm font-bold text-center focus:outline-none focus:border-emerald-500">
+        <button type="submit" class="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow">Ir</button>
+      </form>
+
+      <div class="grid grid-cols-5 gap-1.5 mb-3 max-h-52 overflow-y-auto p-1 border border-slate-100 rounded-xl" id="levels-grid-buttons">
+        <!-- Generados dinámicamente -->
+      </div>
+
+      <!-- Enlace al Verificador de Soluciones -->
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+        <span class="text-emerald-700 font-bold flex items-center gap-1">
+          <i class="fa-solid fa-check-circle text-emerald-500"></i> Solución 100% Verificada
+        </span>
+        <a href="validator.html" target="_blank" class="text-sky-600 hover:text-sky-700 font-bold underline flex items-center gap-1">
+          <i class="fa-solid fa-microchip"></i> Verificador IA
+        </a>
+      </div>
+    </div>
+  </div>
       
       <!-- Entrada rápida para saltar a cualquier nivel (hasta 6 cifras: 1 a 999999) -->
       <form id="form-jump-level" class="flex gap-2 mb-3">
@@ -741,10 +864,14 @@
     /* =====================================================================
        SIMULADOR FÍSICO PURO (PARA EL JUEGO Y PARA EL SOLVER)
        Trabaja sobre matrices simples de caracteres:
-       '.' = vacío, 'R','B','G','Y','P' = bloques, 'M' = metal, 'D','C' = mascotas
+       '.' = vacío, 'R','B','G','Y','P' = bloques, 'M' = metal
+       'D','C' = mascotas libres, 'd','c' = mascotas enjauladas
+       'X' = bomba de tablero (explota 3x3 y rompe jaulas)
        ===================================================================== */
     const isBlock = (c) => ['R', 'B', 'G', 'Y', 'P'].includes(c);
     const isPet = (c) => ['D', 'C'].includes(c);
+    const isCagedPet = (c) => ['d', 'c'].includes(c);
+    const isAnyPet = (c) => ['D', 'C', 'd', 'c'].includes(c);
 
     function simulatePhysics(board) {
       const rows = board.length;
@@ -807,6 +934,8 @@
 
       for (let c = 0; c < cols; c++) {
         const bottom = board[rows - 1][c];
+        // ¡Solo mascotas libres 'D' y 'C' se rescatan!
+        // Las mascotas enjauladas ('d', 'c') NO se rescatan hasta que una bomba rompa su jaula
         if (isPet(bottom)) {
           board[rows - 1][c] = '.';
           rescued++;
@@ -814,10 +943,23 @@
       }
       if (rescued > 0) {
         simulatePhysics(board);
-        // Cascada recursiva por si cae otra mascota inmediatamente
         rescued += checkRescuesOnMatrix(board);
       }
       return rescued;
+    }
+
+    function applyBombOnMatrix(board, br, bc) {
+      const rows = board.length;
+      const cols = board[0].length;
+      for (let r = Math.max(0, br - 1); r <= Math.min(rows - 1, br + 1); r++) {
+        for (let c = Math.max(0, bc - 1); c <= Math.min(cols - 1, bc + 1); c++) {
+          const cell = board[r][c];
+          if (cell === 'd') board[r][c] = 'D'; // Jaula rota -> libre
+          else if (cell === 'c') board[r][c] = 'C'; // Jaula rota -> libre
+          else if (isPet(cell)) {} // Mascota libre queda a salvo
+          else board[r][c] = '.'; // Bloques, metal y bomba se destruyen
+        }
+      }
     }
 
     function getConnectedGroupOnMatrix(board, startR, startC) {
@@ -857,7 +999,6 @@
        SOLVER AUTOMÁTICO (BFS con poda para garantizar solución sin boosters)
        ===================================================================== */
     function solveBoard(initialBoard, maxMoves, requiredPets) {
-      // Estado: { board, movesMade, rescuedCount, path: [[r, c], ...] }
       const cloneBoard = (b) => b.map(row => [...row]);
       
       const startBoard = cloneBoard(initialBoard);
@@ -878,7 +1019,7 @@
       visited.add(boardToHash(startBoard));
 
       let iterations = 0;
-      const MAX_ITERATIONS = 4000; // Límite de exploración rápida (10-40 ms)
+      const MAX_ITERATIONS = 4000;
 
       while (queue.length > 0 && iterations < MAX_ITERATIONS) {
         iterations++;
@@ -890,7 +1031,6 @@
 
         if (current.movesMade >= maxMoves) continue;
 
-        // Encontrar todos los grupos válidos (>= 2 bloques del mismo color)
         const rows = current.board.length;
         const cols = current.board[0].length;
         const processedCells = new Set();
@@ -898,27 +1038,36 @@
 
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
+            const cell = current.board[r][c];
             const cellKey = `${r},${c}`;
-            if (!processedCells.has(cellKey) && isBlock(current.board[r][c])) {
+            if (!processedCells.has(cellKey) && isBlock(cell)) {
               const group = getConnectedGroupOnMatrix(current.board, r, c);
               group.forEach(([gr, gc]) => processedCells.add(`${gr},${gc}`));
               if (group.length >= 2) {
-                availableMoves.push({ r, c, group });
+                availableMoves.push({ type: 'group', r, c, group });
               }
+            } else if (cell === 'X') {
+              availableMoves.push({ type: 'bomb', r, c, group: null });
             }
           }
         }
 
-        // Heurística: dar prioridad a grupos que estén debajo de mascotas o grupos más grandes
-        availableMoves.sort((a, b) => b.group.length - a.group.length);
+        availableMoves.sort((a, b) => {
+          if (a.type === 'bomb') return -1;
+          if (b.type === 'bomb') return 1;
+          return b.group.length - a.group.length;
+        });
 
         for (const move of availableMoves) {
           const nextBoard = cloneBoard(current.board);
-          // Destruir grupo
-          for (const [gr, gc] of move.group) {
-            nextBoard[gr][gc] = '.';
+          if (move.type === 'bomb') {
+            applyBombOnMatrix(nextBoard, move.r, move.c);
+          } else {
+            for (const [gr, gc] of move.group) {
+              nextBoard[gr][gc] = '.';
+            }
           }
-          // Aplicar gravedad y chequear rescates
+
           simulatePhysics(nextBoard);
           const newlyRescued = checkRescuesOnMatrix(nextBoard);
 
@@ -929,7 +1078,6 @@
             visited.add(nextHash);
             const nextPath = [...current.path, [move.r, move.c]];
             
-            // Si este movimiento ya rescata todo, retornar solución de inmediato
             if (totalRescued >= requiredPets) {
               return { solvable: true, path: nextPath };
             }
@@ -1053,6 +1201,7 @@
           let type = 'block';
           let color = null;
           let emoji = null;
+          let caged = false;
 
           if (char === 'R') color = 'red';
           else if (char === 'B') color = 'blue';
@@ -1060,21 +1209,25 @@
           else if (char === 'Y') color = 'yellow';
           else if (char === 'P') color = 'purple';
           else if (char === 'M') { type = 'block'; color = 'metal'; }
-          else if (char === 'D') { type = 'pet'; emoji = '🐶'; }
-          else if (char === 'C') { type = 'pet'; emoji = '🐱'; }
+          else if (char === 'D') { type = 'pet'; emoji = '🐶'; caged = false; }
+          else if (char === 'C') { type = 'pet'; emoji = '🐱'; caged = false; }
+          else if (char === 'd') { type = 'pet'; emoji = '🐶'; caged = true; } // Perro con jaula
+          else if (char === 'c') { type = 'pet'; emoji = '🐱'; caged = true; } // Gato con jaula
+          else if (char === 'X') { type = 'bomb_block'; emoji = '💣'; }        // Bomba en tablero
 
           gridState[r][c] = {
             id: ++blockUniqueId,
             type,
             color,
-            emoji
+            emoji,
+            caged
           };
         }
       }
 
       updateStatsUI();
       renderBoard();
-      resizeCanvas();
+      fitGameToScreen();
 
       // Si no tenemos solución precargada, resolver en segundo plano para habilitar el botón de pista
       if (!cachedSolution) {
@@ -1099,7 +1252,14 @@
         for (let c = 0; c < COLS; c++) {
           const item = state[r][c];
           if (!item) continue;
-          if (item.type === 'pet') charBoard[r][c] = item.emoji === '🐱' ? 'C' : 'D';
+          if (item.type === 'pet') {
+            if (item.caged) {
+              charBoard[r][c] = item.emoji === '🐱' ? 'c' : 'd';
+            } else {
+              charBoard[r][c] = item.emoji === '🐱' ? 'C' : 'D';
+            }
+          }
+          else if (item.type === 'bomb_block') charBoard[r][c] = 'X';
           else if (item.color === 'red') charBoard[r][c] = 'R';
           else if (item.color === 'blue') charBoard[r][c] = 'B';
           else if (item.color === 'green') charBoard[r][c] = 'G';
@@ -1135,6 +1295,43 @@
       }
     }
 
+    /* =====================================================================
+       ADAPTACIÓN DINÁMICA DE PANTALLA (100dvh)
+       Detecta tamaño real del viewport móvil para que nada quede cortado
+       ===================================================================== */
+    function fitGameToScreen() {
+      const vh = window.innerHeight;
+      const vw = window.innerWidth;
+
+      const headerEl = document.querySelector('header');
+      const boosterSecEl = document.querySelector('section');
+      const grassEl = document.querySelector('.grass-ground');
+
+      const headerH = headerEl ? headerEl.offsetHeight : 105;
+      const boosterH = boosterSecEl ? boosterSecEl.offsetHeight : 100;
+      const grassH = grassEl ? grassEl.offsetHeight : 28;
+
+      // Espacio total consumido por encabezados, boosters y márgenes de contenedor
+      const totalOverhead = headerH + boosterH + grassH + 54;
+      const availableH = Math.max(200, vh - totalOverhead);
+
+      // Con 8 filas y 7 gaps de 4px
+      const maxCellH = Math.floor((availableH - 28) / ROWS);
+
+      // Ancho disponible (máximo 448px en max-w-md, o ancho de ventana menos bordes y padding)
+      const boardContainerMaxW = Math.min(vw, 448) - 36;
+      const maxCellW = Math.floor((boardContainerMaxW - (COLS - 1) * 4) / COLS);
+
+      // Ajuste ideal proporcional
+      let cellSize = Math.min(maxCellH, maxCellW);
+      cellSize = Math.max(28, Math.min(52, cellSize));
+
+      document.documentElement.style.setProperty('--cell-size', `${cellSize}px`);
+    }
+
+    window.addEventListener('resize', fitGameToScreen);
+    window.addEventListener('orientationchange', () => setTimeout(fitGameToScreen, 120));
+
     function renderBoard() {
       gridEl.style.gridTemplateColumns = `repeat(${COLS}, minmax(0, 1fr))`;
       gridEl.innerHTML = '';
@@ -1145,15 +1342,15 @@
           const cell = document.createElement('div');
           cell.dataset.r = r;
           cell.dataset.c = c;
-          cell.className = 'aspect-square flex items-center justify-center relative cursor-pointer select-none';
+          cell.className = 'game-cell aspect-square flex items-center justify-center relative cursor-pointer select-none';
 
           if (item) {
             cell.id = `cell-${item.id}`;
             if (item.type === 'block') {
-              cell.classList.add('block-base', `block-${item.color}`);
+              cell.classList.add('block-base', `block-${item.color}`, `glyph-${item.color}`);
               if (item.color === 'metal') {
                 const lockIcon = document.createElement('i');
-                lockIcon.className = 'fa-solid fa-cube text-slate-300 text-sm opacity-70';
+                lockIcon.className = 'fa-solid fa-cube text-slate-200 text-sm opacity-80';
                 cell.appendChild(lockIcon);
               } else {
                 const hl = document.createElement('div');
@@ -1161,10 +1358,28 @@
                 cell.appendChild(hl);
               }
             } else if (item.type === 'pet') {
-              cell.classList.add('pet-bounce', 'bg-white/45', 'backdrop-blur-sm', 'rounded-2xl', 'shadow-md', 'border-2', 'border-amber-300');
+              cell.classList.add('pet-bounce', 'bg-white/60', 'backdrop-blur-sm', 'rounded-2xl', 'shadow-md', 'border-2', 'border-amber-300');
               const span = document.createElement('span');
-              span.className = 'text-2xl sm:text-3xl filter drop-shadow';
+              span.className = 'text-2xl sm:text-3xl filter drop-shadow select-none';
               span.textContent = item.emoji;
+              cell.appendChild(span);
+
+              // Si tiene jaula, renderizar rejas metálicas y candado
+              if (item.caged) {
+                const cage = document.createElement('div');
+                cage.className = 'pet-cage';
+                cage.innerHTML = `
+                  <div class="cage-crossbar"></div>
+                  <span class="cage-padlock">🔒</span>
+                `;
+                cell.appendChild(cage);
+              }
+            } else if (item.type === 'bomb_block') {
+              // Bomba interactiva en el tablero
+              cell.classList.add('block-base', 'block-bomb', 'animate-pulse');
+              const span = document.createElement('span');
+              span.className = 'text-2xl filter drop-shadow select-none';
+              span.textContent = '💣';
               cell.appendChild(span);
             }
           } else {
@@ -1178,7 +1393,7 @@
     }
 
     /* =====================================================================
-       INTERACCIÓN: CLICS NORMALES Y ACTIVACIÓN DE BOOSTERS
+       INTERACCIÓN: CLICS NORMALES, BOMBA DE TABLERO Y BOOSTERS
        ===================================================================== */
     async function onCellClick(r, c, event) {
       if (isProcessing) return;
@@ -1191,7 +1406,24 @@
       }
 
       const item = gridState[r][c];
-      if (!item || item.type !== 'block' || item.color === 'metal') return;
+      if (!item) return;
+
+      // Si es una bomba en el tablero, detonar inmediatamente
+      if (item.type === 'bomb_block') {
+        isProcessing = true;
+        movesLeft--;
+        score += 150;
+        addRocketCharge(12);
+        updateStatsUI();
+
+        await triggerBombExplosion(r, c);
+        setTimeout(computeHintInBackground, 50);
+        checkEndGameConditions();
+        isProcessing = false;
+        return;
+      }
+
+      if (item.type !== 'block' || item.color === 'metal') return;
 
       const group = findConnectedGroup(r, c, item.color);
       if (group.length < 2) {
@@ -1318,12 +1550,86 @@
       boosterBanner.classList.add('hidden');
     }
 
+    /* =====================================================================
+       DETONACIÓN DE BOMBA (3x3): Destruye bloques, metal y LIBERA JAULAS
+       Mantiene las mascotas con vida, eliminando únicamente la jaula.
+       ===================================================================== */
+    async function triggerBombExplosion(targetR, targetC) {
+      playSound('bomb');
+      const rectCanvas = fxCanvas.getBoundingClientRect();
+      let cageFreed = false;
+
+      for (let r = Math.max(0, targetR - 1); r <= Math.min(ROWS - 1, targetR + 1); r++) {
+        for (let c = Math.max(0, targetC - 1); c <= Math.min(COLS - 1, targetC + 1); c++) {
+          const item = gridState[r][c];
+          if (!item) continue;
+
+          const el = document.getElementById(`cell-${item.id}`);
+          let cx = 0, cy = 0;
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            cx = rect.left - rectCanvas.left + rect.width / 2;
+            cy = rect.top - rectCanvas.top + rect.height / 2;
+          }
+
+          if (item.type === 'pet') {
+            if (item.caged) {
+              item.caged = false;
+              cageFreed = true;
+              // Romper jaula visualmente con efecto metálico
+              if (el) {
+                const cageEl = el.querySelector('.pet-cage');
+                if (cageEl) {
+                  cageEl.style.transition = 'all 0.25s ease-out';
+                  cageEl.style.transform = 'scale(1.4) rotate(15deg)';
+                  cageEl.style.opacity = '0';
+                  setTimeout(() => cageEl.remove(), 250);
+                }
+                spawnParticles(cx, cy, '#cbd5e1', 15);
+                spawnParticles(cx, cy, '#f59e0b', 10);
+              }
+            }
+            // La mascota permanece a salvo en el tablero
+          } else {
+            // Bloques regulares, metal o bombas de tablero
+            if (el) {
+              const colorMap = {
+                red: '#ff2a55', blue: '#0284c7', green: '#10b981',
+                yellow: '#f59e0b', purple: '#7c3aed', metal: '#64748b'
+              };
+              const pColor = item.type === 'bomb_block' ? '#f59e0b' : (colorMap[item.color] || '#ffa502');
+              spawnParticles(cx, cy, pColor, 15);
+              spawnParticles(cx, cy, '#ff4757', 8);
+              el.classList.add('animate-pop');
+            }
+            gridState[r][c] = null;
+          }
+        }
+      }
+
+      if (cageFreed) {
+        playSound('rescue');
+      }
+
+      await new Promise(res => setTimeout(res, 220));
+      await applyBoardPhysics();
+      await checkPetRescues();
+    }
+
     async function executeBoosterAction(targetR, targetC) {
       isProcessing = true;
       const bType = activeBooster;
       boosters[bType]--;
       cancelActiveBooster();
       updateStatsUI();
+
+      if (bType === 'bomb') {
+        await triggerBombExplosion(targetR, targetC);
+        setTimeout(computeHintInBackground, 50);
+        checkEndGameConditions();
+        isProcessing = false;
+        return;
+      }
 
       const rectCanvas = fxCanvas.getBoundingClientRect();
 
@@ -1355,23 +1661,6 @@
               el.classList.add('animate-pop');
             }
             gridState[targetR][c] = null;
-          }
-        }
-      } else if (bType === 'bomb') {
-        playSound('bomb');
-        // Explota radio 3x3 centrado en targetR, targetC
-        for (let r = Math.max(0, targetR - 1); r <= Math.min(ROWS - 1, targetR + 1); r++) {
-          for (let c = Math.max(0, targetC - 1); c <= Math.min(COLS - 1, targetC + 1); c++) {
-            const item = gridState[r][c];
-            if (item && item.type === 'block') {
-              const el = document.getElementById(`cell-${item.id}`);
-              if (el) {
-                const rect = el.getBoundingClientRect();
-                spawnParticles(rect.left - rectCanvas.left + rect.width / 2, rect.top - rectCanvas.top + rect.height / 2, '#ffa502', 15);
-                el.classList.add('animate-pop');
-              }
-              gridState[r][c] = null;
-            }
           }
         }
       } else if (bType === 'hammer') {
@@ -1477,6 +1766,10 @@
       for (let c = 0; c < COLS; c++) {
         const bottomItem = gridState[ROWS - 1][c];
         if (bottomItem && bottomItem.type === 'pet') {
+          // Animal enjaulado: ¡NO se rescata hasta que se rompa su jaula con una bomba!
+          if (bottomItem.caged) {
+            continue;
+          }
           rescuedAny = true;
           rescuedCount++;
           score += 300;
@@ -1645,15 +1938,18 @@
     let activeRangeStart = 1;
     let activeRangeEnd = 20;
 
-    function renderModalLevelButtons(start = 1, end = 20) {
+    async function renderModalLevelButtons(start = 1, end = 20) {
       activeRangeStart = start;
       activeRangeEnd = end;
+      levelsGridButtons.innerHTML = '<div class="col-span-5 py-6 text-xs font-bold text-slate-400 text-center">Cargando niveles...</div>';
+
+      await levelManager.loadChunkForLevel(start);
       levelsGridButtons.innerHTML = '';
 
       const cachedIds = levelManager.getCachedLevelIds();
-      // Si no están en caché aún, mostrar los números del rango
-      const idsToShow = cachedIds.length > 0 
-        ? cachedIds.filter(id => id >= start && id <= end)
+      const idsInRange = cachedIds.filter(id => id >= start && id <= end);
+      const idsToShow = idsInRange.length > 0
+        ? idsInRange
         : Array.from({ length: end - start + 1 }, (_, i) => start + i);
 
       idsToShow.forEach(lvlId => {
@@ -1673,37 +1969,35 @@
         levelRangeTabs.querySelectorAll('.range-tab').forEach(tab => {
           const r = tab.dataset.range;
           if (r === `${start}-${end}`) {
-            tab.className = 'range-tab px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-500 text-white shadow-sm';
+            tab.className = 'range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-500 text-white shadow-sm ring-2 ring-emerald-300';
           } else {
-            tab.className = 'range-tab px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200';
+            const isAdvanced = parseInt(tab.dataset.range.split('-')[0], 10) > 100;
+            tab.className = isAdvanced
+              ? 'range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200'
+              : 'range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200';
           }
         });
       }
     }
 
     if (levelRangeTabs) {
-      levelRangeTabs.addEventListener('click', (e) => {
+      levelRangeTabs.addEventListener('click', async (e) => {
         const tab = e.target.closest('.range-tab');
         if (!tab) return;
         const [s, en] = tab.dataset.range.split('-').map(Number);
-        renderModalLevelButtons(s, en);
+        await renderModalLevelButtons(s, en);
       });
     }
 
     btnOpenLevels.addEventListener('click', async () => {
-      // Asegurarse de tener el paquete de niveles en memoria
-      await levelManager.loadChunkForLevel(currentLevelNumber || 1);
-      
-      // Auto-seleccionar la pestaña que contiene el nivel actual
+      // Auto-seleccionar la pestaña que contiene el nivel actual (soporta 1 a 200+)
       const cur = currentLevelNumber || 1;
-      let s = 1, e = 20;
-      if (cur > 80) { s = 81; e = 100; }
-      else if (cur > 60) { s = 61; e = 80; }
-      else if (cur > 40) { s = 41; e = 60; }
-      else if (cur > 20) { s = 21; e = 40; }
+      const rangeChunk = Math.floor((cur - 1) / 20);
+      const s = rangeChunk * 20 + 1;
+      const e = s + 19;
 
-      renderModalLevelButtons(s, e);
       levelsModal.classList.remove('hidden');
+      await renderModalLevelButtons(s, e);
     });
 
     // Saltar a cualquier nivel mediante el input (hasta 999999)
@@ -1755,10 +2049,12 @@
 
     /* INICIALIZACIÓN */
     window.onload = async function () {
+      fitGameToScreen();
       await levelManager.loadChunkForLevel(1);
       await loadPresetLevel(1);
       resizeCanvas();
       updateParticles();
+      fitGameToScreen();
     };
   </script>
 </body>

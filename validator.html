@@ -34,6 +34,9 @@
     .c-M { background: #64748b; border: 1px solid #94a3b8; }
     .c-dot { background: rgba(255,255,255,0.05); }
     .c-pet { background: #fef08a; border: 1px solid #fde047; }
+    .c-caged-pet { background: #fef08a; border: 2px dashed #eab308; position: relative; }
+    .c-caged-pet::after { content: '🔒'; position: absolute; bottom: -2px; right: -2px; font-size: 10px; }
+    .c-X { background: #1e293b; border: 1.5px solid #f59e0b; color: #f59e0b; font-size: 14px; }
   </style>
 </head>
 <body class="p-4 sm:p-6">
@@ -86,6 +89,13 @@
         <button id="btn-stop" class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 font-bold rounded-xl text-slate-300 shadow-md hidden">
           Detener
         </button>
+      </div>
+
+      <!-- SELECTOR DE BLOQUE DE NIVELES (1-100 y 101-200) -->
+      <div class="flex items-center gap-1.5 bg-slate-900/60 p-1 rounded-xl border border-slate-700 text-xs">
+        <span class="text-slate-400 font-bold px-2">Bloque:</span>
+        <button id="chunk-btn-1" class="px-3 py-1 rounded-lg font-bold bg-emerald-500 text-white shadow transition">1 - 100</button>
+        <button id="chunk-btn-2" class="px-3 py-1 rounded-lg font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">101 - 200 🔒</button>
       </div>
 
       <div class="flex items-center gap-2 text-xs">
@@ -286,6 +296,18 @@
       return b.map(r => r.join('')).join('|');
     }
 
+    function applyBombOnMatrix(board, br, bc) {
+      for (let r = Math.max(0, br - 1); r <= Math.min(ROWS - 1, br + 1); r++) {
+        for (let c = Math.max(0, bc - 1); c <= Math.min(COLS - 1, bc + 1); c++) {
+          const cell = board[r][c];
+          if (cell === 'd') board[r][c] = 'D'; // Libera perro
+          else if (cell === 'c') board[r][c] = 'C'; // Libera gato
+          else if (cell === 'D' || cell === 'C') {} // Mascota libre queda a salvo
+          else board[r][c] = '.'; // Bloques, metal y bomba se destruyen
+        }
+      }
+    }
+
     /* =====================================================================
        SOLVER ALGORÍTMICO CLIENT-SIDE (A* / BFS HEURÍSTICO)
        ===================================================================== */
@@ -322,22 +344,33 @@
 
         for (let r = 0; r < ROWS; r++) {
           for (let c = 0; c < COLS; c++) {
-            if (!processed.has(`${r},${c}`) && BLOCK_COLORS.includes(cur.board[r][c])) {
+            const cell = cur.board[r][c];
+            if (!processed.has(`${r},${c}`) && BLOCK_COLORS.includes(cell)) {
               const grp = getConnectedGroup(cur.board, r, c);
               grp.forEach(([gr, gc]) => processed.add(`${gr},${gc}`));
               if (grp.length >= 2) {
-                available.push({ r, c, grp });
+                available.push({ type: 'group', r, c, grp });
               }
+            } else if (cell === 'X') {
+              available.push({ type: 'bomb', r, c, grp: null });
             }
           }
         }
 
-        available.sort((a, b) => b.grp.length - a.grp.length);
+        available.sort((a, b) => {
+          if (a.type === 'bomb') return -1;
+          if (b.type === 'bomb') return 1;
+          return b.grp.length - a.grp.length;
+        });
 
         for (const m of available) {
           const nextBoard = cloneMatrix(cur.board);
-          for (const [gr, gc] of m.grp) {
-            nextBoard[gr][gc] = '.';
+          if (m.type === 'bomb') {
+            applyBombOnMatrix(nextBoard, m.r, m.c);
+          } else {
+            for (const [gr, gc] of m.grp) {
+              nextBoard[gr][gc] = '.';
+            }
           }
 
           simulatePhysics(nextBoard);
@@ -368,10 +401,33 @@
     /* =====================================================================
        CARGA DE ARCHIVOS Y RENDERIZADO
        ===================================================================== */
-    async function init() {
-      const mgr = new LevelManager();
+    const levelManager = new LevelManager();
+    let currentChunkStart = 1;
+
+    async function loadChunk(startLevelId) {
+      if (isRunning) return;
+      currentChunkStart = startLevelId;
+      levelsList.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm">Cargando niveles...</div>';
+      
+      const chunkBtn1 = document.getElementById('chunk-btn-1');
+      const chunkBtn2 = document.getElementById('chunk-btn-2');
+      if (chunkBtn1 && chunkBtn2) {
+        if (startLevelId === 1) {
+          chunkBtn1.className = 'px-3 py-1 rounded-lg font-bold bg-emerald-500 text-white shadow transition';
+          chunkBtn2.className = 'px-3 py-1 rounded-lg font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+        } else {
+          chunkBtn1.className = 'px-3 py-1 rounded-lg font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+          chunkBtn2.className = 'px-3 py-1 rounded-lg font-bold bg-purple-600 text-white shadow transition';
+        }
+      }
+
+      verificationResults.clear();
+      statSolvable.textContent = '0';
+      statUnsolvable.textContent = '0';
+      statRate.textContent = '0%';
+
       try {
-        const levels = await mgr.loadChunkForLevel(1);
+        const levels = await levelManager.loadChunkForLevel(startLevelId);
         if (levels && levels.length > 0) {
           allLevels = levels;
           statTotal.textContent = allLevels.length;
@@ -381,6 +437,15 @@
       } catch (e) {
         console.error(e);
       }
+    }
+
+    async function init() {
+      const chunkBtn1 = document.getElementById('chunk-btn-1');
+      const chunkBtn2 = document.getElementById('chunk-btn-2');
+      if (chunkBtn1) chunkBtn1.addEventListener('click', () => loadChunk(1));
+      if (chunkBtn2) chunkBtn2.addEventListener('click', () => loadChunk(101));
+
+      await loadChunk(1);
     }
 
     function renderLevelsList(filter = 'all') {
@@ -469,6 +534,18 @@
           } else if (char === 'C') {
             cell.classList.add('c-pet');
             cell.textContent = '🐱';
+          } else if (char === 'd') {
+            cell.classList.add('c-caged-pet');
+            cell.textContent = '🐶';
+            cell.title = 'Perro enjaulado (requiere bomba)';
+          } else if (char === 'c') {
+            cell.classList.add('c-caged-pet');
+            cell.textContent = '🐱';
+            cell.title = 'Gato enjaulado (requiere bomba)';
+          } else if (char === 'X') {
+            cell.classList.add('c-X');
+            cell.textContent = '💣';
+            cell.title = 'Bomba 3x3';
           } else {
             cell.classList.add(`c-${char}`);
           }
