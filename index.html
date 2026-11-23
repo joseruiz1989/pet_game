@@ -125,6 +125,27 @@
       pointer-events: none;
     }
 
+    /* PARED INDESTRUCTIBLE (Ladrillos) */
+    .block-wall {
+      background: repeating-linear-gradient(
+        0deg,
+        #b45309 0px,
+        #b45309 8px,
+        #78350f 8px,
+        #78350f 10px
+      );
+      border: 2.5px solid #d97706;
+      box-shadow: inset 0 2px 4px rgba(255,255,255,0.25), inset 0 -3px 6px rgba(0,0,0,0.6), 0 3px 6px rgba(0,0,0,0.45);
+      cursor: not-allowed !important;
+    }
+
+    /* BLASTER DE FILA HORIZONTAL ('H') */
+    .block-row-blaster {
+      background: linear-gradient(135deg, #06b6d4 0%, #0284c7 50%, #1d4ed8 100%);
+      border: 2.5px solid #bae6fd;
+      box-shadow: 0 0 12px rgba(6, 182, 212, 0.75), inset 0 2px 4px rgba(255,255,255,0.5);
+    }
+
     /* =====================================================================
        JAULA DE ANIMALES (ESTILO PET RESCUE SAGA ORIGINAL)
        ===================================================================== */
@@ -392,7 +413,7 @@
       <div class="flex justify-between items-center mb-2">
         <div class="flex items-center gap-2">
           <span class="text-xl">🗺️</span>
-          <h3 class="game-font text-lg sm:text-xl text-emerald-800">Seleccionar Nivel (1 - 200)</h3>
+          <h3 class="game-font text-lg sm:text-xl text-emerald-800">Seleccionar Nivel (1 - 500)</h3>
         </div>
         <button id="btn-close-levels" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200">✕</button>
       </div>
@@ -409,6 +430,12 @@
         <button data-range="141-160" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200">141-160 🔒</button>
         <button data-range="161-180" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200">161-180 🔒</button>
         <button data-range="181-200" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200">181-200 🔒</button>
+        <button data-range="201-250" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200">201-250 🧱</button>
+        <button data-range="251-300" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200">251-300 🧱</button>
+        <button data-range="301-350" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-sky-100 text-sky-800 hover:bg-sky-200">301-350 🔄</button>
+        <button data-range="351-400" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-sky-100 text-sky-800 hover:bg-sky-200">351-400 🔄</button>
+        <button data-range="401-450" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-100 text-rose-800 hover:bg-rose-200">401-450 🔥</button>
+        <button data-range="451-500" class="range-tab whitespace-nowrap px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-100 text-rose-800 hover:bg-rose-200">451-500 🔥</button>
       </div>
       
       <!-- Entrada rápida para saltar a cualquier nivel (hasta 6 cifras: 1 a 999999) -->
@@ -583,6 +610,12 @@
        ===================================================================== */
     let currentLevelNumber = 1;
     let isProceduralLevel = false;
+    let currentLevelRefill = false;
+    let currentLevelSeed = 0;
+
+    function nextLcg(seed) {
+      return (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    }
     let gridState = []; // Matriz de objetos actuales
     let savedInitialState = null; // Copia para reiniciar el nivel con el mismo layout
     let movesLeft = 0;
@@ -878,11 +911,13 @@
       const cols = board[0].length;
       let changed = false;
 
-      // 1. Gravedad vertical
+      // 1. Gravedad vertical (las paredes 'W' no caen y detienen lo de arriba)
       for (let c = 0; c < cols; c++) {
         let emptyR = rows - 1;
         for (let r = rows - 1; r >= 0; r--) {
-          if (board[r][c] !== '.') {
+          if (board[r][c] === 'W') {
+            emptyR = r - 1;
+          } else if (board[r][c] !== '.') {
             if (emptyR !== r) {
               board[emptyR][c] = board[r][c];
               board[r][c] = '.';
@@ -893,7 +928,7 @@
         }
       }
 
-      // 2. Colapso de columnas vacías hacia la izquierda
+      // 2. Colapso de columnas vacías hacia la izquierda (solo columnas sin 'W')
       for (let c = 0; c < cols - 1; c++) {
         let isColEmpty = true;
         for (let r = 0; r < rows; r++) {
@@ -906,6 +941,7 @@
         if (isColEmpty) {
           let foundContentOnRight = false;
           for (let nc = c + 1; nc < cols; nc++) {
+            if (board.some(row => row[nc] === 'W')) continue;
             for (let r = 0; r < rows; r++) {
               if (board[r][nc] !== '.') {
                 foundContentOnRight = true;
@@ -954,7 +990,8 @@
       for (let r = Math.max(0, br - 1); r <= Math.min(rows - 1, br + 1); r++) {
         for (let c = Math.max(0, bc - 1); c <= Math.min(cols - 1, bc + 1); c++) {
           const cell = board[r][c];
-          if (cell === 'd') board[r][c] = 'D'; // Jaula rota -> libre
+          if (cell === 'W') continue; // Pared indestructible
+          else if (cell === 'd') board[r][c] = 'D'; // Jaula rota -> libre
           else if (cell === 'c') board[r][c] = 'C'; // Jaula rota -> libre
           else if (isPet(cell)) {} // Mascota libre queda a salvo
           else board[r][c] = '.'; // Bloques, metal y bomba se destruyen
@@ -1183,6 +1220,8 @@
       levelIndEl.textContent = typeof levelData.id === 'number' ? `Nivel ${levelData.id}` : levelData.id;
       movesLeft = levelData.moves;
       targetPetsCount = levelData.targetPets;
+      currentLevelRefill = Boolean(levelData.refill);
+      currentLevelSeed = levelData.seed || (typeof levelData.id === 'number' ? levelData.id * 1337 + 42 : 12345);
       rescuedCount = 0;
       score = 0;
       isProcessing = false;
@@ -1209,6 +1248,8 @@
           else if (char === 'Y') color = 'yellow';
           else if (char === 'P') color = 'purple';
           else if (char === 'M') { type = 'block'; color = 'metal'; }
+          else if (char === 'W') { type = 'wall'; color = 'wall'; }
+          else if (char === 'H') { type = 'row_blaster'; emoji = '↔️'; }
           else if (char === 'D') { type = 'pet'; emoji = '🐶'; caged = false; }
           else if (char === 'C') { type = 'pet'; emoji = '🐱'; caged = false; }
           else if (char === 'd') { type = 'pet'; emoji = '🐶'; caged = true; } // Perro con jaula
@@ -1252,7 +1293,9 @@
         for (let c = 0; c < COLS; c++) {
           const item = state[r][c];
           if (!item) continue;
-          if (item.type === 'pet') {
+          if (item.type === 'wall') {
+            continue; // Pared indestructible
+          } else if (item.type === 'pet') {
             if (item.caged) {
               charBoard[r][c] = item.emoji === '🐱' ? 'c' : 'd';
             } else {
@@ -1260,6 +1303,8 @@
             }
           }
           else if (item.type === 'bomb_block') charBoard[r][c] = 'X';
+          else if (item.type === 'wall') charBoard[r][c] = 'W';
+          else if (item.type === 'row_blaster') charBoard[r][c] = 'H';
           else if (item.color === 'red') charBoard[r][c] = 'R';
           else if (item.color === 'blue') charBoard[r][c] = 'B';
           else if (item.color === 'green') charBoard[r][c] = 'G';
@@ -1381,6 +1426,19 @@
               span.className = 'text-2xl filter drop-shadow select-none';
               span.textContent = '💣';
               cell.appendChild(span);
+            } else if (item.type === 'wall') {
+              // Pared indestructible de ladrillos
+              cell.classList.add('block-base', 'block-wall');
+              const wallIcon = document.createElement('i');
+              wallIcon.className = 'fa-solid fa-shield-halved text-amber-200/70 text-sm';
+              cell.appendChild(wallIcon);
+            } else if (item.type === 'row_blaster') {
+              // Blaster horizontal: borra toda la fila
+              cell.classList.add('block-base', 'block-row-blaster', 'animate-pulse');
+              const span = document.createElement('span');
+              span.className = 'text-xl sm:text-2xl filter drop-shadow select-none';
+              span.textContent = '↔️';
+              cell.appendChild(span);
             }
           } else {
             cell.classList.add('opacity-0', 'pointer-events-none');
@@ -1417,6 +1475,21 @@
         updateStatsUI();
 
         await triggerBombExplosion(r, c);
+        setTimeout(computeHintInBackground, 50);
+        checkEndGameConditions();
+        isProcessing = false;
+        return;
+      }
+
+      // Si es un blaster de fila horizontal, borrar toda la fila
+      if (item.type === 'row_blaster') {
+        isProcessing = true;
+        movesLeft--;
+        score += 150;
+        addRocketCharge(12);
+        updateStatsUI();
+
+        await triggerRowBlaster(r, c);
         setTimeout(computeHintInBackground, 50);
         checkEndGameConditions();
         isProcessing = false;
@@ -1572,7 +1645,9 @@
             cy = rect.top - rectCanvas.top + rect.height / 2;
           }
 
-          if (item.type === 'pet') {
+          if (item.type === 'wall') {
+            continue; // Pared indestructible
+          } else if (item.type === 'pet') {
             if (item.caged) {
               item.caged = false;
               cageFreed = true;
@@ -1612,6 +1687,28 @@
       }
 
       await new Promise(res => setTimeout(res, 220));
+      await applyBoardPhysics();
+      await checkPetRescues();
+    }
+
+    async function triggerRowBlaster(targetR, targetC) {
+      playSound('row_rocket');
+      const rectCanvas = fxCanvas.getBoundingClientRect();
+
+      for (let c = 0; c < COLS; c++) {
+        const item = gridState[targetR][c];
+        if (!item || item.type === 'wall' || item.type === 'pet') continue;
+
+        const el = document.getElementById(`cell-${item.id}`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          spawnParticles(rect.left - rectCanvas.left + rect.width / 2, rect.top - rectCanvas.top + rect.height / 2, '#06b6d4', 14);
+          el.classList.add('animate-pop');
+        }
+        gridState[targetR][c] = null;
+      }
+
+      await new Promise(res => setTimeout(res, 200));
       await applyBoardPhysics();
       await checkPetRescues();
     }
@@ -1711,13 +1808,16 @@
        FÍSICA DEL TABLERO VINCULADA AL DOM
        ===================================================================== */
     async function applyBoardPhysics() {
-      // 1. Gravedad vertical
+      // 1. Gravedad vertical (las paredes 'wall' no caen y detienen lo de arriba)
       for (let c = 0; c < COLS; c++) {
         let emptyR = ROWS - 1;
         for (let r = ROWS - 1; r >= 0; r--) {
-          if (gridState[r][c] !== null) {
+          const item = gridState[r][c];
+          if (item && item.type === 'wall') {
+            emptyR = r - 1;
+          } else if (item !== null) {
             if (emptyR !== r) {
-              gridState[emptyR][c] = gridState[r][c];
+              gridState[emptyR][c] = item;
               gridState[r][c] = null;
             }
             emptyR--;
@@ -1725,7 +1825,7 @@
         }
       }
 
-      // 2. Colapso lateral de columnas vacías
+      // 2. Colapso lateral de columnas vacías (solo columnas sin paredes)
       for (let c = 0; c < COLS - 1; c++) {
         let isColEmpty = true;
         for (let r = 0; r < ROWS; r++) {
@@ -1738,6 +1838,7 @@
         if (isColEmpty) {
           let foundContentOnRight = false;
           for (let nc = c + 1; nc < COLS; nc++) {
+            if (gridState.some(row => row[nc] && row[nc].type === 'wall')) continue;
             for (let r = 0; r < ROWS; r++) {
               if (gridState[r][nc] !== null) {
                 foundContentOnRight = true;
@@ -1756,7 +1857,54 @@
         }
       }
 
+      // 3. Relleno continuo desde arriba si el nivel tiene refill activado
+      if (currentLevelRefill) {
+        refillBoardFromTop();
+      }
+
       renderBoard();
+    }
+
+    function refillBoardFromTop() {
+      const colorNames = ['red', 'blue', 'green', 'yellow', 'purple'];
+      let petsOnBoard = 0;
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (gridState[r][c] && gridState[r][c].type === 'pet') petsOnBoard++;
+        }
+      }
+      let petsToSpawn = Math.max(0, targetPetsCount - (rescuedCount + petsOnBoard));
+
+      for (let c = 0; c < COLS; c++) {
+        for (let r = 0; r < ROWS; r++) {
+          const cur = gridState[r][c];
+          if (cur && cur.type === 'wall') break;
+          if (cur === null) {
+            currentLevelSeed = nextLcg(currentLevelSeed);
+            if (petsToSpawn > 0 && (((currentLevelSeed >>> 16) % 8 === 0) || r === 0)) {
+              currentLevelSeed = nextLcg(currentLevelSeed);
+              const isDog = ((currentLevelSeed >>> 16) % 2 === 0);
+              gridState[r][c] = {
+                id: ++blockUniqueId,
+                type: 'pet',
+                color: null,
+                emoji: isDog ? '🐶' : '🐱',
+                caged: false
+              };
+              petsToSpawn--;
+            } else {
+              const color = colorNames[(currentLevelSeed >>> 16) % 5];
+              gridState[r][c] = {
+                id: ++blockUniqueId,
+                type: 'block',
+                color,
+                emoji: null,
+                caged: false
+              };
+            }
+          }
+        }
+      }
     }
 
     async function checkPetRescues() {
@@ -1990,11 +2138,18 @@
     }
 
     btnOpenLevels.addEventListener('click', async () => {
-      // Auto-seleccionar la pestaña que contiene el nivel actual (soporta 1 a 200+)
+      // Auto-seleccionar la pestaña que contiene el nivel actual (soporta 1 a 500+)
       const cur = currentLevelNumber || 1;
-      const rangeChunk = Math.floor((cur - 1) / 20);
-      const s = rangeChunk * 20 + 1;
-      const e = s + 19;
+      let s, e;
+      if (cur <= 200) {
+        const rangeChunk = Math.floor((cur - 1) / 20);
+        s = rangeChunk * 20 + 1;
+        e = s + 19;
+      } else {
+        const rangeChunk = Math.floor((cur - 201) / 50);
+        s = 201 + rangeChunk * 50;
+        e = s + 49;
+      }
 
       levelsModal.classList.remove('hidden');
       await renderModalLevelButtons(s, e);

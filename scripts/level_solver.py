@@ -24,11 +24,18 @@ import time
 ROWS = 8
 COLS = 6
 BLOCK_COLORS = {'R', 'B', 'G', 'Y', 'P'}
+COLOR_LIST = ['R', 'B', 'G', 'Y', 'P']
 PET_SYMBOLS = {'D', 'C'}          # Mascotas libres (se rescatan en el fondo)
 CAGED_PET_SYMBOLS = {'d', 'c'}    # Mascotas enjauladas (NO se rescatan hasta liberar jaula con bomba)
 ALL_PET_SYMBOLS = PET_SYMBOLS | CAGED_PET_SYMBOLS
 BOMB_SYMBOLS = {'X'}
+BLASTER_SYMBOLS = {'H'}           # Borra toda la fila horizontal
+WALL_SYMBOLS = {'W'}              # Pared indestructible (no cae ni se borra)
 OBSTACLE_SYMBOLS = {'M'}
+
+
+def next_lcg(seed):
+    return (seed * 1664525 + 1013904223) & 0xFFFFFFFF
 
 
 def board_to_hash(board):
@@ -38,25 +45,31 @@ def board_to_hash(board):
 def simulate_physics(board):
     """
     Aplica gravedad vertical y colapso de columnas vacías hacia la izquierda.
+    Las paredes 'W' son inamovibles y detienen la caída de lo que está encima.
     Modifica la matriz in-place.
     """
     # 1. Gravedad vertical
     for c in range(COLS):
         empty_r = ROWS - 1
         for r in range(ROWS - 1, -1, -1):
-            if board[r][c] != '.':
+            cell = board[r][c]
+            if cell == 'W':
+                empty_r = r - 1
+            elif cell != '.':
                 if empty_r != r:
-                    board[empty_r][c] = board[r][c]
+                    board[empty_r][c] = cell
                     board[r][c] = '.'
                 empty_r -= 1
 
-    # 2. Colapso de columnas vacías hacia la izquierda
+    # 2. Colapso de columnas vacías hacia la izquierda (solo columnas sin 'W')
     c = 0
     while c < COLS - 1:
         is_empty = all(board[r][c] == '.' for r in range(ROWS))
         if is_empty:
             found_right = False
             for nc in range(c + 1, COLS):
+                if any(board[r][nc] == 'W' for r in range(ROWS)):
+                    continue
                 if any(board[r][nc] != '.' for r in range(ROWS)):
                     found_right = True
                     for r in range(ROWS):
@@ -67,6 +80,31 @@ def simulate_physics(board):
             if not found_right:
                 break
         c += 1
+
+
+def refill_board(board, seed, total_rescued, target_pets):
+    """
+    Rellena celdas vacías desde arriba usando PRNG determinista.
+    Si faltan mascotas por aparecer para alcanzar target_pets, puede generarlas.
+    """
+    pets_on_board = sum(
+        1 for r in range(ROWS) for c in range(COLS) if board[r][c] in ALL_PET_SYMBOLS
+    )
+    pets_to_spawn = max(0, target_pets - (total_rescued + pets_on_board))
+
+    for c in range(COLS):
+        for r in range(ROWS):
+            if board[r][c] == 'W':
+                break
+            if board[r][c] == '.':
+                seed = next_lcg(seed)
+                if pets_to_spawn > 0 and ((seed >> 16) % 8 == 0 or r == 0):
+                    seed = next_lcg(seed)
+                    board[r][c] = 'D' if ((seed >> 16) % 2 == 0) else 'C'
+                    pets_to_spawn -= 1
+                else:
+                    board[r][c] = COLOR_LIST[(seed >> 16) % 5]
+    return seed
 
 
 def check_rescues(board):
@@ -119,6 +157,7 @@ def apply_bomb_explosion(board, br, bc):
     """
     Detona una bomba en (br, bc) sobre una cuadrícula 3x3:
     - Rompe bloques, metales y la propia bomba (pasan a '.').
+    - Respeta paredes 'W' (indestructibles).
     - Si hay un animal con jaula ('d', 'c'), le quita la jaula pasándolo a animal libre ('D', 'C').
     - El animal NO es destruido.
     """
@@ -126,24 +165,44 @@ def apply_bomb_explosion(board, br, bc):
     for r in range(max(0, br - 1), min(ROWS, br + 2)):
         for c in range(max(0, bc - 1), min(COLS, bc + 2)):
             cell = next_board[r][c]
-            if cell == 'd':
+            if cell == 'W':
+                continue
+            elif cell == 'd':
                 next_board[r][c] = 'D'  # Jaula destruida -> Perro libre
             elif cell == 'c':
                 next_board[r][c] = 'C'  # Jaula destruida -> Gato libre
             elif cell in PET_SYMBOLS:
                 pass  # Mascota ya libre no sufre daño
             else:
-                next_board[r][c] = '.'  # Bloque, metal o bomba destruidos
+                next_board[r][c] = '.'  # Bloque, metal, blaster o bomba destruidos
     return next_board
 
 
-def solve_level(layout, max_moves, target_pets, max_iterations=6000):
+def apply_row_blaster(board, br, bc):
+    """
+    Activa un elemento que borra toda la fila horizontal (br):
+    - Respeta paredes 'W' y mascotas ('D', 'C', 'd', 'c').
+    """
+    next_board = [list(row) for row in board]
+    for c in range(COLS):
+        cell = next_board[br][c]
+        if cell == 'W' or cell in ALL_PET_SYMBOLS:
+            continue
+        next_board[br][c] = '.'
+    return next_board
+
+
+def solve_level(layout, max_moves, target_pets, max_iterations=6000, refill=False, seed=0):
     """
     Resuelve el nivel usando búsqueda heurística (A* / Best-First).
     Garantiza que el nivel tiene solución demostrada.
     """
     start_board = [list(row) for row in layout]
     initial_rescued = check_rescues(start_board)
+    cur_seed = seed
+
+    if refill:
+        cur_seed = refill_board(start_board, cur_seed, initial_rescued, target_pets)
 
     if initial_rescued >= target_pets:
         return True, 0, [], 0
@@ -165,13 +224,13 @@ def solve_level(layout, max_moves, target_pets, max_iterations=6000):
 
     h0 = calc_h(start_board, initial_rescued)
     counter = 0
-    pq = [(h0, counter, 0, initial_rescued, start_board, [])]
+    pq = [(h0, counter, 0, initial_rescued, cur_seed, start_board, [])]
     visited = {board_to_hash(start_board): 0}
     iterations = 0
 
     while pq and iterations < max_iterations:
         iterations += 1
-        f, _, moves_made, total_rescued, cur_board, path = heapq.heappop(pq)
+        f, _, moves_made, total_rescued, state_seed, cur_board, path = heapq.heappop(pq)
 
         if total_rescued >= target_pets:
             return True, moves_made, path, iterations
@@ -182,7 +241,7 @@ def solve_level(layout, max_moves, target_pets, max_iterations=6000):
         processed = set()
         available_moves = []
 
-        # 1. Movimientos por grupos de colores (>= 2)
+        # 1. Movimientos por grupos de colores (>= 2), bombas ('X') y blasters ('H')
         for r in range(ROWS):
             for c in range(COLS):
                 cell = cur_board[r][c]
@@ -193,21 +252,23 @@ def solve_level(layout, max_moves, target_pets, max_iterations=6000):
                     if len(grp) >= 2:
                         available_moves.append(('group', r, c, grp))
                 elif cell == 'X':
-                    # 2. Movimiento por detonación de bomba de tablero
                     available_moves.append(('bomb', r, c, None))
+                elif cell == 'H':
+                    available_moves.append(('row_blaster', r, c, None))
 
-        # Ordenar movimientos favoreciendo grupos grandes y bombas
+        # Ordenar movimientos favoreciendo grupos grandes, bombas y blasters
         def move_score(item):
             m_type, r, c, grp = item
             if m_type == 'bomb':
-                # Bomba tiene alta prioridad si hay animales enjaulados cerca
                 has_caged_near = any(
                     cur_board[nr][nc] in CAGED_PET_SYMBOLS
                     for nr in range(max(0, r - 1), min(ROWS, r + 2))
                     for nc in range(max(0, c - 1), min(COLS, c + 2))
                 )
                 return (3 if has_caged_near else 1, 9)
-            
+            if m_type == 'row_blaster':
+                return (2, 6)
+
             under_pet = any(
                 any(cur_board[above_r][gc] in ALL_PET_SYMBOLS for above_r in range(gr))
                 for gr, gc in grp
@@ -219,6 +280,8 @@ def solve_level(layout, max_moves, target_pets, max_iterations=6000):
         for m_type, mr, mc, grp in available_moves:
             if m_type == 'bomb':
                 next_board = apply_bomb_explosion(cur_board, mr, mc)
+            elif m_type == 'row_blaster':
+                next_board = apply_row_blaster(cur_board, mr, mc)
             else:
                 next_board = [list(row) for row in cur_board]
                 for gr, gc in grp:
@@ -227,6 +290,9 @@ def solve_level(layout, max_moves, target_pets, max_iterations=6000):
             simulate_physics(next_board)
             new_rescues = check_rescues(next_board)
             new_total = total_rescued + new_rescues
+            next_seed = state_seed
+            if refill and new_total < target_pets:
+                next_seed = refill_board(next_board, next_seed, new_total, target_pets)
 
             next_path = path + [(mr, mc)]
             next_moves = moves_made + 1
@@ -239,7 +305,7 @@ def solve_level(layout, max_moves, target_pets, max_iterations=6000):
                 visited[b_hash] = next_moves
                 h = calc_h(next_board, new_total)
                 counter += 1
-                heapq.heappush(pq, (next_moves + h, counter, next_moves, new_total, next_board, next_path))
+                heapq.heappush(pq, (next_moves + h, counter, next_moves, new_total, next_seed, next_board, next_path))
 
     return False, None, None, iterations
 
@@ -269,9 +335,11 @@ def verify_file(file_path):
         moves = lvl.get('moves', 15)
         target_pets = lvl.get('targetPets', 2)
         layout = lvl.get('layout', [])
+        refill = lvl.get('refill', False)
+        seed = lvl.get('seed', 0)
 
         t0 = time.time()
-        solvable, min_moves, path, iters = solve_level(layout, moves, target_pets)
+        solvable, min_moves, path, iters = solve_level(layout, moves, target_pets, refill=refill, seed=seed)
         dt = (time.time() - t0) * 1000
 
         if solvable:
@@ -359,14 +427,52 @@ def generate_single_level(level_id, difficulty_tier):
         max_moves = random.randint(19, 23)
         cohesion = 0.52
         metal_chance = 0.07
-    else:  # Tier 8 (Niveles 181-200): Maestría extrema
+    elif level_id <= 200:  # Tier 8 (Niveles 181-200): Maestría extrema
         color_pool = all_colors
         num_pets = 4
         num_caged = 2
         num_bombs = 2
+        num_blasters = 0
+        num_walls = 0
+        use_refill = False
         max_moves = random.randint(20, 24)
         cohesion = 0.50
         metal_chance = 0.09
+    elif level_id <= 300:  # Tier 9 (Niveles 201-300): Blasters de Fila y Paredes
+        color_pool = all_colors
+        num_pets = random.randint(3, 4)
+        num_caged = random.randint(0, 1)
+        num_bombs = 1 if num_caged > 0 else random.randint(0, 1)
+        num_blasters = random.randint(1, 2)
+        num_walls = random.randint(1, 3)
+        use_refill = (level_id % 2 == 0)
+        max_moves = random.randint(20, 25)
+        cohesion = 0.55
+        metal_chance = 0.05
+    elif level_id <= 400:  # Tier 10 (Niveles 301-400): Cascada Continua + Paredes
+        color_pool = all_colors
+        num_pets = random.randint(4, 5)
+        num_caged = random.randint(1, 2)
+        num_bombs = random.randint(1, 2)
+        num_blasters = random.randint(1, 2)
+        num_walls = random.randint(2, 4)
+        use_refill = True
+        max_moves = random.randint(22, 26)
+        cohesion = 0.55
+        metal_chance = 0.06
+    else:  # Tier 11 (Niveles 401-500+): Gran Maestría
+        color_pool = all_colors
+        num_pets = random.randint(4, 6)
+        num_caged = random.randint(1, 2)
+        num_bombs = random.randint(1, 2)
+        num_blasters = random.randint(1, 2)
+        num_walls = random.randint(2, 4)
+        use_refill = (level_id % 3 != 0)
+        max_moves = random.randint(22, 28)
+        cohesion = 0.52
+        metal_chance = 0.07
+
+    seed = level_id * 1337 + 42
 
     max_attempts = 150
     for attempt in range(max_attempts):
@@ -387,12 +493,20 @@ def generate_single_level(level_id, difficulty_tier):
 
                 layout[r][c] = neighbor if neighbor else random.choice(color_pool)
 
-        # 2. Ubicar mascotas en la fila superior (r=0)
+        # 2. Ubicar paredes indestructibles ('W') en filas medias (2-5), dejando columnas libres
+        if level_id > 200 and num_walls > 0:
+            wall_cols = random.sample(range(COLS), min(num_walls, 3))
+            for wc in wall_cols:
+                wr = random.randint(2, 5)
+                layout[wr][wc] = 'W'
+
+        # 3. Ubicar mascotas iniciales en la fila superior (r=0)
+        # Si use_refill es True, empezamos con 2-3 mascotas y el resto salen desde arriba
+        initial_pets = min(num_pets, 3) if use_refill else num_pets
         available_cols = list(range(COLS))
         random.shuffle(available_cols)
-        pet_cols = available_cols[:num_pets]
+        pet_cols = available_cols[:initial_pets]
 
-        # Determinar cuáles son libres y cuáles enjauladas
         for i, col in enumerate(pet_cols):
             is_caged = (i < num_caged)
             if is_caged:
@@ -400,7 +514,7 @@ def generate_single_level(level_id, difficulty_tier):
             else:
                 layout[0][col] = 'D' if i % 2 == 0 else 'C'
 
-        # 3. Ubicar bombas en el tablero si corresponde (en filas intermedias 3-6)
+        # 4. Ubicar bombas ('X') y blasters de fila ('H')
         if num_bombs > 0:
             bomb_placed = 0
             bomb_attempts = 0
@@ -408,21 +522,38 @@ def generate_single_level(level_id, difficulty_tier):
                 bomb_attempts += 1
                 br = random.randint(3, 6)
                 bc = random.randint(0, COLS - 1)
-                if layout[br][bc] not in ('M', 'D', 'C', 'd', 'c'):
+                if layout[br][bc] not in ('M', 'W', 'D', 'C', 'd', 'c', 'X', 'H'):
                     layout[br][bc] = 'X'
                     bomb_placed += 1
 
-        # 4. Probar si el solver lo resuelve
-        solvable, min_moves, path, _ = solve_level(layout, max_moves, num_pets, max_iterations=4500)
+        if level_id > 200 and num_blasters > 0:
+            blaster_placed = 0
+            blaster_attempts = 0
+            while blaster_placed < num_blasters and blaster_attempts < 20:
+                blaster_attempts += 1
+                hr = random.randint(2, 6)
+                hc = random.randint(0, COLS - 1)
+                if layout[hr][hc] not in ('M', 'W', 'D', 'C', 'd', 'c', 'X', 'H'):
+                    layout[hr][hc] = 'H'
+                    blaster_placed += 1
+
+        # 5. Probar si el solver lo resuelve
+        solvable, min_moves, path, _ = solve_level(
+            layout, max_moves, num_pets, max_iterations=4500, refill=use_refill, seed=seed
+        )
         if solvable and min_moves >= (1 if level_id <= 3 else 3):
             allowed_moves = max(min_moves + 4, max_moves)
-            return {
+            lvl_obj = {
                 "id": level_id,
                 "name": get_level_title(level_id),
                 "moves": allowed_moves,
                 "targetPets": num_pets,
                 "layout": layout
             }
+            if use_refill:
+                lvl_obj["refill"] = True
+                lvl_obj["seed"] = seed
+            return lvl_obj
 
     # Respaldo garantizado de alta coherencia
     fallback_pool = all_colors[:3]

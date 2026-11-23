@@ -37,6 +37,8 @@
     .c-caged-pet { background: #fef08a; border: 2px dashed #eab308; position: relative; }
     .c-caged-pet::after { content: '🔒'; position: absolute; bottom: -2px; right: -2px; font-size: 10px; }
     .c-X { background: #1e293b; border: 1.5px solid #f59e0b; color: #f59e0b; font-size: 14px; }
+    .c-W { background: #92400e; border: 1.5px solid #d97706; color: #fde68a; font-size: 12px; }
+    .c-H { background: #0284c7; border: 1.5px solid #bae6fd; color: #ffffff; font-size: 14px; }
   </style>
 </head>
 <body class="p-4 sm:p-6">
@@ -91,11 +93,14 @@
         </button>
       </div>
 
-      <!-- SELECTOR DE BLOQUE DE NIVELES (1-100 y 101-200) -->
-      <div class="flex items-center gap-1.5 bg-slate-900/60 p-1 rounded-xl border border-slate-700 text-xs">
+      <!-- SELECTOR DE BLOQUE DE NIVELES (1-500) -->
+      <div class="flex flex-wrap items-center gap-1.5 bg-slate-900/60 p-1 rounded-xl border border-slate-700 text-xs">
         <span class="text-slate-400 font-bold px-2">Bloque:</span>
-        <button id="chunk-btn-1" class="px-3 py-1 rounded-lg font-bold bg-emerald-500 text-white shadow transition">1 - 100</button>
-        <button id="chunk-btn-2" class="px-3 py-1 rounded-lg font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">101 - 200 🔒</button>
+        <button id="chunk-btn-1" data-start="1" class="chunk-btn px-2.5 py-1 rounded-lg font-bold bg-emerald-500 text-white shadow transition">1-100</button>
+        <button id="chunk-btn-2" data-start="101" class="chunk-btn px-2.5 py-1 rounded-lg font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">101-200 🔒</button>
+        <button id="chunk-btn-3" data-start="201" class="chunk-btn px-2.5 py-1 rounded-lg font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">201-300 🧱</button>
+        <button id="chunk-btn-4" data-start="301" class="chunk-btn px-2.5 py-1 rounded-lg font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">301-400 🔄</button>
+        <button id="chunk-btn-5" data-start="401" class="chunk-btn px-2.5 py-1 rounded-lg font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">401-500 🔥</button>
       </div>
 
       <div class="flex items-center gap-2 text-xs">
@@ -205,11 +210,13 @@
     }
 
     function simulatePhysics(board) {
-      // 1. Gravedad
+      // 1. Gravedad (paredes 'W' no caen y detienen lo de arriba)
       for (let c = 0; c < COLS; c++) {
         let emptyR = ROWS - 1;
         for (let r = ROWS - 1; r >= 0; r--) {
-          if (board[r][c] !== '.') {
+          if (board[r][c] === 'W') {
+            emptyR = r - 1;
+          } else if (board[r][c] !== '.') {
             if (emptyR !== r) {
               board[emptyR][c] = board[r][c];
               board[r][c] = '.';
@@ -219,7 +226,7 @@
         }
       }
 
-      // 2. Colapso hacia la izquierda
+      // 2. Colapso hacia la izquierda (solo columnas sin 'W')
       for (let c = 0; c < COLS - 1; c++) {
         let isEmpty = true;
         for (let r = 0; r < ROWS; r++) {
@@ -231,6 +238,7 @@
         if (isEmpty) {
           let foundRight = false;
           for (let nc = c + 1; nc < COLS; nc++) {
+            if (board.some(row => row[nc] === 'W')) continue;
             for (let r = 0; r < ROWS; r++) {
               if (board[r][nc] !== '.') {
                 foundRight = true;
@@ -300,11 +308,20 @@
       for (let r = Math.max(0, br - 1); r <= Math.min(ROWS - 1, br + 1); r++) {
         for (let c = Math.max(0, bc - 1); c <= Math.min(COLS - 1, bc + 1); c++) {
           const cell = board[r][c];
-          if (cell === 'd') board[r][c] = 'D'; // Libera perro
+          if (cell === 'W') continue; // Pared indestructible
+          else if (cell === 'd') board[r][c] = 'D'; // Libera perro
           else if (cell === 'c') board[r][c] = 'C'; // Libera gato
           else if (cell === 'D' || cell === 'C') {} // Mascota libre queda a salvo
           else board[r][c] = '.'; // Bloques, metal y bomba se destruyen
         }
+      }
+    }
+
+    function applyRowBlasterOnMatrix(board, br) {
+      for (let c = 0; c < COLS; c++) {
+        const cell = board[br][c];
+        if (cell === 'W' || cell === 'D' || cell === 'C' || cell === 'd' || cell === 'c') continue;
+        board[br][c] = '.';
       }
     }
 
@@ -409,17 +426,14 @@
       currentChunkStart = startLevelId;
       levelsList.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm">Cargando niveles...</div>';
       
-      const chunkBtn1 = document.getElementById('chunk-btn-1');
-      const chunkBtn2 = document.getElementById('chunk-btn-2');
-      if (chunkBtn1 && chunkBtn2) {
-        if (startLevelId === 1) {
-          chunkBtn1.className = 'px-3 py-1 rounded-lg font-bold bg-emerald-500 text-white shadow transition';
-          chunkBtn2.className = 'px-3 py-1 rounded-lg font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+      document.querySelectorAll('.chunk-btn').forEach(btn => {
+        const s = parseInt(btn.dataset.start, 10);
+        if (s === startLevelId) {
+          btn.className = 'chunk-btn px-2.5 py-1 rounded-lg font-bold bg-emerald-500 text-white shadow transition';
         } else {
-          chunkBtn1.className = 'px-3 py-1 rounded-lg font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
-          chunkBtn2.className = 'px-3 py-1 rounded-lg font-bold bg-purple-600 text-white shadow transition';
+          btn.className = 'chunk-btn px-2.5 py-1 rounded-lg font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
         }
-      }
+      });
 
       verificationResults.clear();
       statSolvable.textContent = '0';
@@ -440,10 +454,9 @@
     }
 
     async function init() {
-      const chunkBtn1 = document.getElementById('chunk-btn-1');
-      const chunkBtn2 = document.getElementById('chunk-btn-2');
-      if (chunkBtn1) chunkBtn1.addEventListener('click', () => loadChunk(1));
-      if (chunkBtn2) chunkBtn2.addEventListener('click', () => loadChunk(101));
+      document.querySelectorAll('.chunk-btn').forEach(btn => {
+        btn.addEventListener('click', () => loadChunk(parseInt(btn.dataset.start, 10)));
+      });
 
       await loadChunk(1);
     }
@@ -546,6 +559,14 @@
             cell.classList.add('c-X');
             cell.textContent = '💣';
             cell.title = 'Bomba 3x3';
+          } else if (char === 'W') {
+            cell.classList.add('c-W');
+            cell.innerHTML = '<i class="fa-solid fa-shield-halved text-[10px]"></i>';
+            cell.title = 'Pared indestructible';
+          } else if (char === 'H') {
+            cell.classList.add('c-H');
+            cell.textContent = '↔️';
+            cell.title = 'Blaster de fila horizontal';
           } else {
             cell.classList.add(`c-${char}`);
           }
